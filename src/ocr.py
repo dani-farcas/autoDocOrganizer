@@ -4,20 +4,26 @@
 # ==========================================================
 
 import os
+import platform
 from typing import Optional
 from PIL import Image
 import pytesseract
 from pdf2image import convert_from_path
 
-# 🟢 Tesseract-Executable suchen (Standard: Windows)
-DEFAULT_TESSERACT = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-TESSERACT_CMD = os.getenv("TESSERACT_CMD", DEFAULT_TESSERACT)
-
-if os.path.exists(TESSERACT_CMD):
-    pytesseract.pytesseract.tesseract_cmd = TESSERACT_CMD
+# 🟢 Betriebssystem erkennen (Windows vs. Linux)
+if platform.system() == "Windows":
+    DEFAULT_TESSERACT = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+    TESSERACT_CMD = os.getenv("TESSERACT_CMD", DEFAULT_TESSERACT)
+    if os.path.exists(TESSERACT_CMD):
+        pytesseract.pytesseract.tesseract_cmd = TESSERACT_CMD
+    else:
+        print(f"⚠️  Achtung: Tesseract nicht gefunden unter {TESSERACT_CMD}. "
+              f"Bitte Umgebungsvariable TESSERACT_CMD setzen!")
 else:
-    print(f"⚠️  Achtung: Tesseract nicht gefunden unter {TESSERACT_CMD}. "
-          f"Bitte Umgebungsvariable TESSERACT_CMD setzen!")
+    # Auf Linux/Ubuntu wird Tesseract global über apt installiert
+    TESSERACT_CMD = "tesseract"
+    pytesseract.pytesseract.tesseract_cmd = TESSERACT_CMD
+
 
 def run_ocr(filepath: str, lang: str = "deu+eng") -> Optional[str]:
     """

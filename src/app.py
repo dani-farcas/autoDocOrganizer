@@ -236,4 +236,6 @@ def explain_file():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    # ⚠️ Auf dem Server KEIN debug=True verwenden
+    # Host=0.0.0.0 macht die App von außen erreichbar
+    app.run(host="0.0.0.0", port=5000)

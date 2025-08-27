@@ -1,0 +1,36 @@
+classDiagram
+    class App {
+        +Flask API
+        +Webinterface
+    }
+
+    class OCR {
+        +run_ocr(file)
+    }
+
+    class ExtractInstitution {
+        +extract_institution(text)
+    }
+
+    class Translate {
+        +translate_text(text, target_lang)
+    }
+
+    class Explain {
+        +explain_text(text, target_lang)
+    }
+
+    class FileOps {
+        +move_to_archive(file, institution)
+    }
+
+    class Indexer {
+        +update_index(file, institution)
+    }
+
+    App --> OCR
+    App --> Translate
+    App --> Explain
+    OCR --> ExtractInstitution
+    OCR --> FileOps
+    FileOps --> Indexer

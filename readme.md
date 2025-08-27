@@ -1,144 +1,100 @@
-📄 README.md
-# 📂 AutoDocOrganizer
-
-AutoDocOrganizer ist eine Python-basierte Anwendung, die automatisch gescannte Dokumente verarbeitet, per OCR lesbar macht, die Institution des Absenders erkennt, und die Dateien in einer klaren Archivstruktur ablegt.  
-Über ein Web-Frontend (Flask) können Dokumente hochgeladen, angezeigt, übersetzt und durch KI erklärt werden.
-
----
-
-## 🎯 Ziele des Projekts
-- **Automatisierte Dokumentenorganisation**: Eingehende Scans werden automatisch analysiert.
-- **OCR-Verarbeitung**: PDFs und Bilder werden mit Tesseract + Poppler in durchsuchbaren Text umgewandelt.
-- **Institutionserkennung**: Die Absender-Institution wird heuristisch aus dem Dokumenttext extrahiert.
-- **Strukturierte Ablage**: Dokumente werden in `Archive/<Jahr>/<Institution>/` verschoben.
-- **Indexierung**: Jedes Dokument wird in `Archive/index.csv` registriert (Datum, Institution, Dateiname, Textauszug).
-- **Web-Interface**: Einfache Bedienung über Browser (Upload, Navigation, Translate, Explain).
-- **KI-Integration**: Dokumente können in andere Sprachen übersetzt und inhaltlich erklärt werden.
-
----
-
-## 📦 Projektstruktur
 
 
+
+🌍 Überblick
+
+AutoDocOrganizer ist eine Web-Anwendung zur automatischen Verarbeitung von importierten Dokumenten (PDF oder Bilddateien).
+Das System wurde als MVP (Minimum Viable Product) umgesetzt: Es ermöglicht bereits OCR, automatische Ablage, Übersetzung und Erklärung von Dokumenten.
+
+
+🌐 Live-Demo
+
+Die Anwendung ist auf unserem Testserver (AWS EC2, Ubuntu 24.04) dauerhaft eingerichtet und erreichbar unter:
+
+👉 http://52.29.84.137/
+
+(Der Server läuft unabhängig von VS Code; die Dienste nginx und autoDocOrganizer werden automatisch durch systemd gestartet.)
+
+
+🎯 Funktionsumfang (MVP)
+
+Import von Dokumenten: Upload im Webinterface oder Kopieren in ScansInbox/.
+
+OCR (Texterkennung): Automatische Volltexterkennung aus PDFs/Bildern (Tesseract + Poppler).
+
+Institutionserkennung: Ablage in Ordnern nach Jahr und Institution, sonst in _Unbekannt.
+
+Indexierung: Zentrale Übersicht aller archivierten Dokumente.
+
+Übersetzung: DeepL-Integration für Übersetzungen in wählbare Sprachen.
+
+Erklärungen: Google Gemini-Integration für leicht verständliche Erklärungen.
+
+Webzugriff: Bedienung über Browser dank Flask + Gunicorn + Nginx.
+
+Kontextmenü (Rechtsklick): Auf jedes Dokument →
+
+Translate → Sprache auswählen
+
+Explain → Erklärung mit KI
+
+
+🛠️ Architektur
+```plaintext
 AutoDocOrganizer/
-├─ config/ # Konfiguration (.env, Settings)
-├─ src/ # Quellcode
-│ ├─ web.py # Flask-Weboberfläche
-│ ├─ ocr.py # OCR-Funktionalität (Tesseract, pdf2image)
-│ ├─ extract_institution.py # Institutionserkennung
-│ ├─ fileops.py # Dateioperationen (Verschieben ins Archiv)
-│ ├─ indexer.py # Indexverwaltung (CSV)
-│ ├─ translate_ai.py # Übersetzungen (DeepL API)
-│ ├─ explain_ai.py # Erklärungen (OpenAI GPT oder Fallback)
-│ └─ watcher.py # (optional) Ordnerüberwachung
-├─ templates/
-│ └─ index.html # Web-UI (Upload, Ordnernavigation, Buttons)
-├─ ScansInbox/ # Eingangsscans (temporär)
-├─ Archive/ # Archiv mit Jahres- und Institutionsordnern
-└─ requirements.txt # Abhängigkeiten
-
-
+├─ config/              # Einstellungen (.env, settings.yml)
+├─ src/                 # Python-Code
+│   ├─ main.py          # CLI-Modus (Batch-Verarbeitung)
+│   ├─ app.py           # Flask-App (Webinterface)
+│   ├─ ocr.py           # OCR mit Tesseract + Poppler
+│   ├─ extract_institution.py
+│   ├─ translate.py     # DeepL-Übersetzungen
+│   ├─ explain.py       # Gemini-Erklärungen
+│   ├─ fileops.py       # Dateimanagement
+│   └─ indexer.py       # Indexverwaltung
+├─ ScansInbox/          # Eingehende Dokumente
+├─ Archive/             # Automatisch sortierte Ablage
+└─ requirements.txt     # Python-Abhängigkeiten
 ---
 
-## ⚙️ Installation
 
-### Voraussetzungen
-- Python 3.10+  
-- Tesseract OCR (muss installiert sein, Pfad in `ocr.py` konfigurierbar)  
-- Poppler (für `pdf2image`)  
+📊 Systemarchitektur (UML)
 
-### Python-Abhängigkeiten
-```bash
-pip install -r requirements.txt
-
-.env Konfiguration
-
-Im Hauptverzeichnis .env anlegen:
-
-# DeepL API Key (für Übersetzungen)
-DEEPL_API_KEY=xxxxxxxxxxxxxxxx
-
-# OpenAI API Key (für KI-Erklärungen)
-OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxx
-
-# OCR / Projektpfade
-SCANS_INBOX=ScansInbox
-ARCHIVE_FOLDER=Archive
-DEFAULT_LANG=DE
-TARGET_LANG=EN
-
-🚀 Nutzung
-Server starten
-cd src
-python web.py
-
-Zugriff im Browser
-
-Öffne: http://127.0.0.1:5000
-
-Funktionen
-
-Upload: Neue Dateien hochladen (ScansInbox/)
-
-Archivierung: Automatische Ablage in Archive/<Jahr>/<Institution>
-
-Ordnernavigation: Klickbare Ordneransicht im Browser
-
-Translate: Übersetzt den Text (DeepL API)
-
-Explain: Erstellt eine leicht verständliche Erklärung des Inhalts (OpenAI GPT oder Fallback)
-
-📚 Beispielablauf
-
-PDF in der Weboberfläche hochladen.
-
-OCR liest den Inhalt aus.
-
-Institutionserkennung bestimmt den Absender.
-
-Datei wird verschoben in:
-
-Archive/2025/Warenhandel Dick e.K/Rechnung_123.pdf
+![UML Diagramm (PNG)](docs/architecture.png) 
+![UML Diagramm](docs/architecture.svg)
 
 
-Indexeintrag in Archive/index.csv.
+🚀 Zukunft / Geplante Erweiterungen
 
-Im Browser → Datei auswählen → Translate (Übersetzung) oder Explain (KI-Erklärung).
+Dies ist aktuell ein MVP. Für eine spätere Version sind folgende Erweiterungen vorgesehen:
 
-🔮 Geplante Erweiterungen
+🌐 Modernes UI: Benutzeroberfläche im Stil aktueller Web-Apps (Material Design / Microsoft 365).
 
-Fallback-KI lokal: HuggingFace-Modelle nutzen, wenn OpenAI-Quota erschöpft ist.
+📂 Drag & Drop Upload: Dokumente per Drag & Drop ins Browserfenster ziehen.
 
-Suchfunktion: Volltextsuche über alle archivierten Dokumente.
+☁️ Cloud-Integration: Automatische Speicherung in OneDrive oder ähnlichen Cloud-Diensten, um nahtlos in bestehende Arbeitsumgebungen integriert zu werden.
 
-Searchable PDFs: OCR-Ergebnis direkt in das PDF einbetten (ocrmypdf).
+📸 Scanner-Anbindung: Direkte Integration mit TWAIN/SANE für physische Scanner.
 
-DSGVO-Modus: Automatische Anonymisierung sensibler Daten.
+🔍 Suche & Filter: Volltextsuche in allen archivierten Dokumenten.
 
-Mobile Uploads: Direkter Upload über Smartphone-App.
+📱 Mobile App / Responsive Webdesign: Zugriff von Smartphone und Tablet.
 
-Mehrsprachige Oberfläche: UI in Deutsch, Englisch, Französisch.
 
-👨‍🏫 Projekthintergrund
+✅ Vorteile
 
-Dieses Projekt entstand im Rahmen einer Studienarbeit / eines Kurses, mit den Zielen:
+Automatische Ablage spart Zeit und verhindert Fehler.
 
-Anwendung von OCR-Technologien (Tesseract, Poppler).
+Einfache Nutzung über Browser.
 
-Nutzung von Python & Flask für Prototyp-Webanwendungen.
+Sofortige Mehrsprachigkeit dank DeepL.
 
-Integration externer KI-APIs (DeepL, OpenAI).
+KI-Erklärungen erleichtern das Verständnis offizieller Schreiben.
 
-Saubere Softwarearchitektur mit Modulen und Konfigurationen.
+Zukunftssicher durch geplante Erweiterungen (Cloud, modernes UI, Mobile).
 
-Dokumentation und Präsentation auf professionellem Niveau.
 
-👨‍💻 Autor
+📌 Fazit
 
-Daniel Farcas
-
-Hochschule: [Name einsetzen]
-
-Kurs: [z. B. „Softwareprojekt Anwendungsentwicklung“]
-
-Jahr: 2025
+AutoDocOrganizer ist ein voll funktionsfähiger Prototyp (MVP), der die Kernfunktionen bereits demonstriert.
+Er eignet sich ideal als Grundlage für eine professionelle Weiterentwicklung in Richtung einer modernen Cloud-Lösung, die mit Microsoft 365 & OneDrive vergleichbar ist.
