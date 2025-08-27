@@ -59,15 +59,11 @@ AutoDocOrganizer/
 
 ## 🗂️ Systemarchitektur (UML)
 
-### PNG-Version (inline sichtbar)
-![UML Diagramm](docs/architecture.png)
-
-### PNG-Version (Fallback über raw.githubusercontent.com)
-![UML Diagramm RAW](https://raw.githubusercontent.com/dani-farcas/autoDocOrganizer/main/docs/architecture.png)
+### PNG-Version (garantiert sichtbar)
+![UML Diagramm](https://raw.githubusercontent.com/dani-farcas/autoDocOrganizer/main/docs/architecture.png)
 
 ### SVG-Version (nur als Link)
 [👉 UML Diagramm (SVG)](docs/architecture.svg)
-
 
 
 🚀 Zukunft / Geplante Erweiterungen
