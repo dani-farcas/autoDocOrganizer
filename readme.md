@@ -9,7 +9,7 @@ Das System wurde als MVP (Minimum Viable Product) umgesetzt: Es ermöglicht bere
 
 🌐 Live-Demo
 
-Die Anwendung ist auf unserem Testserver (AWS EC2, Ubuntu 24.04) dauerhaft eingerichtet und erreichbar unter:
+Die Anwendung ist auf meinem Testserver (AWS EC2, Ubuntu 24.04) dauerhaft eingerichtet und erreichbar unter:
 
 👉 http://52.29.84.137/
 
