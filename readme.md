@@ -57,11 +57,17 @@ AutoDocOrganizer/
 └─ requirements.txt     # Python-Abhängigkeiten
 ---
 
+## 🗂️ Systemarchitektur (UML)
 
-📊 Systemarchitektur (UML)
+### PNG-Version (inline sichtbar)
+![UML Diagramm](docs/architecture.png)
 
-![UML Diagramm (PNG)](docs/architecture.png) 
-![UML Diagramm](docs/architecture.svg)
+### PNG-Version (Fallback über raw.githubusercontent.com)
+![UML Diagramm RAW](https://raw.githubusercontent.com/dani-farcas/autoDocOrganizer/main/docs/architecture.png)
+
+### SVG-Version (nur als Link)
+[👉 UML Diagramm (SVG)](docs/architecture.svg)
+
 
 
 🚀 Zukunft / Geplante Erweiterungen
