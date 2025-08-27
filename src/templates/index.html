@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>AutoDocOrganizer</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    h1 { color: #2b7a78; margin-top: 0; display: flex; align-items: center; gap: 20px; }
+    ul { list-style: none; padding: 0; margin: 0; }
+    li { padding: 6px 10px; cursor: pointer; border-bottom: 1px solid #eee; }
+    li:hover { background: #f0f0f0; }
+    .context-menu {
+      position: absolute;
+      background: white;
+      border: 1px solid #ccc;
+      padding: 5px;
+      z-index: 1000;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+      min-width: 160px;
+    }
+    .context-menu button {
+      display: block;
+      width: 100%;
+      padding: 6px 10px;
+      border: none;
+      background: none;
+      text-align: left;
+      cursor: pointer;
+      font: inherit;
+    }
+    .context-menu button:hover { background: #eee; }
+    .breadcrumb {
+      margin: 6px 0 12px;
+      font-size: 14px;
+      color: #555;
+    }
+    .breadcrumb span { cursor: pointer; color: #0a66c2; }
+    .breadcrumb span:hover { text-decoration: underline; }
+    .upload-box input[type="file"] { margin-right: 5px; }
+  </style>
+</head>
+<body>
+  <h1>
+    📂 AutoDocOrganizer
+    <!-- Upload-Formular -->
+    <form class="upload-box" action="/upload" method="post" enctype="multipart/form-data">
+      <input type="file" name="files" multiple>
+      <button type="submit">📤 Importieren</button>
+    </form>
+  </h1>
+
+  <div class="breadcrumb" id="breadcrumb"></div>
+  <ul id="file-list"></ul>
+
+  <script>
+    let currentPath = "Archive";
+    let contextMenu;
+
+    const supportedLanguages = [
+      { code: "EN-US", name: "Englisch (US)" },
+      { code: "EN-GB", name: "Englisch (UK)" },
+      { code: "DE", name: "Deutsch" },
+      { code: "FR", name: "Französisch" },
+      { code: "IT", name: "Italienisch" },
+      { code: "ES", name: "Spanisch" },
+      { code: "PT-PT", name: "Portugiesisch (Portugal)" },
+      { code: "PT-BR", name: "Portugiesisch (Brasilien)" },
+      { code: "NL", name: "Niederländisch" },
+      { code: "PL", name: "Polnisch" },
+      { code: "RU", name: "Russisch" },
+      { code: "RO", name: "Rumänisch" },
+      { code: "JA", name: "Japanisch" },
+      { code: "ZH", name: "Chinesisch" }
+    ];
+
+    function renderBreadcrumb(path) {
+      const parts = path.split(/[\\/]/).filter(Boolean);
+      let breadcrumb = "";
+      let partial = "";
+      parts.forEach((part, i) => {
+        partial += (i === 0 ? part : "/" + part);
+        breadcrumb += `<span onclick="loadFolder('${partial}')">${part}</span>`;
+        if (i < parts.length - 1) breadcrumb += " / ";
+      });
+      document.getElementById("breadcrumb").innerHTML = breadcrumb;
+    }
+
+    function normalizeToArchivePath(p) {
+      if (!p) return "Archive";
+      let s = String(p).replace(/\\/g, "/");
+      const i = s.indexOf("Archive");
+      if (i >= 0) s = s.substring(i);
+      if (!s.startsWith("Archive")) s = "Archive/" + s.replace(/^\/+/, "");
+      return s;
+    }
+
+    function dirname(p) {
+      p = normalizeToArchivePath(p);
+      const idx = p.lastIndexOf("/");
+      return idx > 0 ? p.slice(0, idx) : p;
+    }
+
+    async function loadFolder(path = "Archive") {
+      currentPath = normalizeToArchivePath(path);
+      const res = await fetch(`/list?path=${encodeURIComponent(currentPath)}`);
+      const items = await res.json();
+
+      renderBreadcrumb(currentPath);
+
+      const ul = document.getElementById("file-list");
+      ul.innerHTML = "";
+
+      items.forEach(item => {
+        let rel = normalizeToArchivePath(item.path);
+        const li = document.createElement("li");
+        li.textContent = (item.type === "folder" ? "📂 " : "📄 ") + item.name;
+
+        if (item.type === "folder") {
+          li.ondblclick = () => loadFolder(rel);
+          li.oncontextmenu = (e) => {
+            e.preventDefault();
+            showFolderMenu(e.pageX, e.pageY, rel);
+          };
+        } else {
+          li.ondblclick = () => openFile(rel);
+          li.oncontextmenu = (e) => {
+            e.preventDefault();
+            showFileMenu(e.pageX, e.pageY, rel);
+          };
+        }
+        ul.appendChild(li);
+      });
+    }
+
+    function openFile(path) {
+      const rel = normalizeToArchivePath(path);
+      window.open(`/download?file=${encodeURIComponent(rel)}`, "_blank");
+    }
+
+    function showFileMenu(x, y, path) {
+      if (contextMenu) contextMenu.remove();
+      contextMenu = document.createElement("div");
+      contextMenu.className = "context-menu";
+      contextMenu.style.top = y + "px";
+      contextMenu.style.left = x + "px";
+      contextMenu.innerHTML = `
+        <button onclick="downloadFile('${path}')">⬇️ Download</button>
+        <button onclick="renameFile('${path}')">✏️ Umbenennen</button>
+        <button onclick="translateFile('${path}')">🌍 Übersetzen</button>
+        <button onclick="explainFile('${path}')">📖 Erklären</button>
+        <button onclick="deleteFile('${path}')">❌ Löschen</button>
+      `;
+      document.body.appendChild(contextMenu);
+      document.addEventListener("click", () => { if (contextMenu) contextMenu.remove(); }, { once: true });
+    }
+
+    function showFolderMenu(x, y, path) {
+      if (contextMenu) contextMenu.remove();
+      contextMenu = document.createElement("div");
+      contextMenu.className = "context-menu";
+      contextMenu.style.top = y + "px";
+      contextMenu.style.left = x + "px";
+      contextMenu.innerHTML = `
+        <button onclick="renameFolder('${path}')">✏️ Ordner umbenennen</button>
+        <button onclick="deleteFolder('${path}')">❌ Ordner löschen</button>
+      `;
+      document.body.appendChild(contextMenu);
+      document.addEventListener("click", () => { if (contextMenu) contextMenu.remove(); }, { once: true });
+    }
+
+    function downloadFile(path) {
+      const rel = normalizeToArchivePath(path);
+      window.location.href = `/force_download?file=${encodeURIComponent(rel)}`;
+    }
+
+    async function renameFile(path) {
+      const rel = normalizeToArchivePath(path);
+      const newName = prompt("Neuer Dateiname:", rel.split("/").pop());
+      if (!newName) return;
+      const body = { old: rel, new: normalizeToArchivePath(dirname(rel) + "/" + newName) };
+      const res = await fetch("/rename", { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body) });
+      if (res.ok) loadFolder(dirname(rel)); else alert("❌ Fehler beim Umbenennen");
+    }
+
+    async function renameFolder(path) {
+      const newName = prompt("Neuer Ordnername:", path.split("/").pop());
+      if (!newName) return;
+      const res = await fetch("/rename_folder", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ old: path, new: newName })
+      });
+      if (res.ok) loadFolder(dirname(path)); else alert("❌ Fehler beim Umbenennen des Ordners");
+    }
+
+    async function deleteFile(path) {
+      const rel = normalizeToArchivePath(path);
+      if (!confirm("Datei wirklich löschen?")) return;
+      const res = await fetch("/delete", { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({ file: rel }) });
+      if (res.ok) loadFolder(currentPath); else alert("❌ Fehler beim Löschen");
+    }
+
+    async function deleteFolder(path) {
+      if (!confirm("Ordner wirklich löschen (inkl. aller Dateien)?")) return;
+      const res = await fetch("/delete_folder", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ folder: path })
+      });
+      if (res.ok) loadFolder(dirname(path)); else alert("❌ Fehler beim Löschen des Ordners");
+    }
+
+    async function translateFile(path) {
+      const rel = normalizeToArchivePath(path);
+
+      const select = document.createElement("select");
+      select.style.fontSize = "14px";
+      select.style.marginBottom = "10px";
+      supportedLanguages.forEach(lang => {
+        const opt = document.createElement("option");
+        opt.value = lang.code;
+        opt.textContent = `${lang.name} (${lang.code})`;
+        select.appendChild(opt);
+      });
+
+      const wrapper = document.createElement("div");
+      wrapper.style.padding = "10px";
+      wrapper.innerHTML = "<b>Sprache auswählen:</b><br>";
+      wrapper.appendChild(select);
+
+      const outputArea = document.createElement("textarea");
+      outputArea.style.width = "100%";
+      outputArea.style.height = "300px";
+      outputArea.style.marginTop = "10px";
+      outputArea.style.fontSize = "14px";
+      outputArea.style.fontFamily = "monospace";
+      outputArea.readOnly = true;
+      wrapper.appendChild(outputArea);
+
+      const btnDiv = document.createElement("div");
+      btnDiv.style.marginTop = "10px";
+
+      const okBtn = document.createElement("button");
+      okBtn.textContent = "Übersetzen";
+      okBtn.onclick = async () => {
+        const lang = select.value;
+        outputArea.value = "⏳ Übersetze...";
+        const res = await fetch(`/translate?file=${encodeURIComponent(rel)}&lang=${encodeURIComponent(lang)}`);
+        outputArea.value = await res.text();
+      };
+
+      const closeBtn = document.createElement("button");
+      closeBtn.textContent = "Schließen";
+      closeBtn.style.marginLeft = "10px";
+      closeBtn.onclick = () => document.body.removeChild(modal);
+
+      btnDiv.appendChild(okBtn);
+      btnDiv.appendChild(closeBtn);
+      wrapper.appendChild(btnDiv);
+
+      const modal = document.createElement("div");
+      modal.style.position = "fixed";
+      modal.style.top = "50%";
+      modal.style.left = "50%";
+      modal.style.transform = "translate(-50%, -50%)";
+      modal.style.background = "#fff";
+      modal.style.border = "1px solid #ccc";
+      modal.style.padding = "20px";
+      modal.style.boxShadow = "0 2px 10px rgba(0,0,0,0.3)";
+      modal.style.width = "600px";
+      modal.style.maxHeight = "80vh";
+      modal.style.overflow = "auto";
+      modal.appendChild(wrapper);
+
+      document.body.appendChild(modal);
+    }
+
+    async function explainFile(path) {
+      const rel = normalizeToArchivePath(path);
+
+      const select = document.createElement("select");
+      select.style.fontSize = "14px";
+      select.style.marginBottom = "10px";
+      supportedLanguages.forEach(lang => {
+        const opt = document.createElement("option");
+        opt.value = lang.code;
+        opt.textContent = `${lang.name} (${lang.code})`;
+        select.appendChild(opt);
+      });
+
+      const wrapper = document.createElement("div");
+      wrapper.style.padding = "10px";
+      wrapper.innerHTML = "<b>Sprache auswählen:</b><br>";
+      wrapper.appendChild(select);
+
+      const outputArea = document.createElement("textarea");
+      outputArea.style.width = "100%";
+      outputArea.style.height = "300px";
+      outputArea.style.marginTop = "10px";
+      outputArea.style.fontSize = "14px";
+      outputArea.style.fontFamily = "monospace";
+      outputArea.readOnly = true;
+      wrapper.appendChild(outputArea);
+
+      const btnDiv = document.createElement("div");
+      btnDiv.style.marginTop = "10px";
+
+      const okBtn = document.createElement("button");
+      okBtn.textContent = "Erklären";
+      okBtn.onclick = async () => {
+        const lang = select.value;
+        outputArea.value = "⏳ Erkläre Dokument...";
+        const res = await fetch(`/explain?file=${encodeURIComponent(rel)}&lang=${encodeURIComponent(lang)}`);
+        outputArea.value = await res.text();
+      };
+
+      const closeBtn = document.createElement("button");
+      closeBtn.textContent = "Schließen";
+      closeBtn.style.marginLeft = "10px";
+      closeBtn.onclick = () => document.body.removeChild(modal);
+
+      btnDiv.appendChild(okBtn);
+      btnDiv.appendChild(closeBtn);
+      wrapper.appendChild(btnDiv);
+
+      const modal = document.createElement("div");
+      modal.style.position = "fixed";
+      modal.style.top = "50%";
+      modal.style.left = "50%";
+      modal.style.transform = "translate(-50%, -50%)";
+      modal.style.background = "#fff";
+      modal.style.border = "1px solid #ccc";
+      modal.style.padding = "20px";
+      modal.style.boxShadow = "0 2px 10px rgba(0,0,0,0.3)";
+      modal.style.width = "600px";
+      modal.style.maxHeight = "80vh";
+      modal.style.overflow = "auto";
+      modal.appendChild(wrapper);
+
+      document.body.appendChild(modal);
+    }
+
+    async function archiveFile(path) {
+      const rel = normalizeToArchivePath(path);
+      const res = await fetch("/archive", { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({ file: rel }) });
+      if (res.ok) loadFolder(currentPath); else alert("❌ Fehler beim Archivieren");
+    }
+
+    loadFolder();
+  </script>
+</body>
+</html>
