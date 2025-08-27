@@ -40,7 +40,7 @@ Explain → Erklärung mit KI
 
 
 🛠️ Architektur
-```plaintext
+
 AutoDocOrganizer/
 ├─ config/              # Einstellungen (.env, settings.yml)
 ├─ src/                 # Python-Code
@@ -55,7 +55,7 @@ AutoDocOrganizer/
 ├─ ScansInbox/          # Eingehende Dokumente
 ├─ Archive/             # Automatisch sortierte Ablage
 └─ requirements.txt     # Python-Abhängigkeiten
----
+
 
 ## 🗂️ Systemarchitektur (UML)
 
