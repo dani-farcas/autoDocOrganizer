@@ -1,67 +1,78 @@
 # ==========================================================
-# Indexverwaltung für AutoDocOrganizer
-# Hält eine CSV-Liste aller archivierten Dateien fest
+# 📝 Indexverwaltung für AutoDocOrganizer
+# Speichert Metadaten aller archivierten Dateien in index.csv
+# Logik: Jahr = immer aktuelles Jahr (datetime.now().year)
 # ==========================================================
 
-import os
 import csv
+import os
 from datetime import datetime
-
-# 📌 Ziel: Desktop/AutoDocOrganizer/index.csv
-USER_HOME = os.path.expanduser("~")
-DESKTOP_DIR = os.path.join(USER_HOME, "Desktop")
-ARCHIVE_DIR = os.path.join(DESKTOP_DIR, "AutoDocOrganizer")
-INDEX_FILE = os.path.join(ARCHIVE_DIR, "index.csv")
-
-# Sicherstellen, dass Basisordner existiert
-os.makedirs(ARCHIVE_DIR, exist_ok=True)
+from fileops import INDEX_FILE
 
 
-def update_index(file_path: str, year: str, institution: str):
+def update_index(filepath: str, institution: str):
     """
-    Ergänzt die Index-Datei mit einer neuen Zeile.
-    
-    :param file_path: Vollständiger Pfad zur archivierten Datei
-    :param year: Jahr (als String)
-    :param institution: erkannte Institution
+    Fügt einen Eintrag in index.csv hinzu oder aktualisiert ihn.
+    Jahr wird immer automatisch aus Systemzeit ermittelt.
     """
-    # Fallbacks
-    if not year:
-        year = str(datetime.now().year)
-    if not institution or not str(institution).strip():
-        institution = "Unklar"
+    fieldnames = ["Datei", "Jahr", "Institution", "Pfad"]
 
-    # Falls Datei nicht existiert → Exception
-    if not os.path.exists(file_path):
-        raise FileNotFoundError(f"❌ Datei nicht gefunden für Index: {file_path}")
+    rows = []
+    if os.path.exists(INDEX_FILE):
+        with open(INDEX_FILE, newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
 
-    # CSV-Header
-    header = ["Datei", "Jahr", "Institution", "Pfad", "Eingetragen am"]
+            # Prüfen ob Header korrekt ist, sonst Index zurücksetzen
+            if reader.fieldnames != fieldnames:
+                print("⚠️ Index-Datei beschädigt, wird neu erstellt...")
+                rows = []
+            else:
+                rows = list(reader)
 
-    # Zeile für Index
-    row = [
-        os.path.basename(file_path),
-        year,
-        institution,
-        file_path,
-        datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    ]
+    filename = os.path.basename(filepath)
 
-    # Schreiben / Anhängen
-    file_exists = os.path.exists(INDEX_FILE)
-    with open(INDEX_FILE, mode="a", newline="", encoding="utf-8") as csvfile:
-        writer = csv.writer(csvfile)
-        if not file_exists:
-            writer.writerow(header)
-        writer.writerow(row)
+    # 📅 Immer aktuelles Jahr verwenden
+    year = str(datetime.now().year)
 
-    print(f"📝 Index aktualisiert: {row}")
+    new_row = {
+        "Datei": filename,
+        "Jahr": year,
+        "Institution": institution if institution else "_Unklar",
+        "Pfad": filepath
+    }
+
+    # Alte Einträge mit gleichem Dateinamen + Pfad entfernen
+    rows = [row for row in rows if not (row.get("Datei") == filename and row.get("Pfad") == filepath)]
+
+    # Neuen Eintrag hinzufügen
+    rows.append(new_row)
+
+    # Datei neu schreiben
+    with open(INDEX_FILE, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
+    print(f"📝 Index aktualisiert: {new_row}")
 
 
-# 🧪 Testmodus
-if __name__ == "__main__":
-    test_file = os.path.join(ARCHIVE_DIR, "2025", "Finanzamt", "rechnung.pdf")
-    try:
-        update_index(test_file, "2025", "Finanzamt")
-    except Exception as e:
-        print(e)
+def read_index():
+    """
+    Liest alle Einträge aus index.csv.
+    Returns:
+        list[dict]: Liste aller Index-Einträge
+    """
+    fieldnames = ["Datei", "Jahr", "Institution", "Pfad"]
+
+    if not os.path.exists(INDEX_FILE):
+        return []
+
+    with open(INDEX_FILE, newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+
+        # Prüfen ob Header korrekt ist
+        if reader.fieldnames != fieldnames:
+            print("⚠️ Ungültiges Index-Format, leere Liste zurückgegeben")
+            return []
+
+        return list(reader)

@@ -3,9 +3,10 @@
 # und direkt durch den Verarbeitungs-Workflow zu schicken.
 
 import os
+from datetime import datetime
 from ocr import run_ocr
-from extract_institution import detect_institution
-from fileops import archive_file
+from extract_institution import extract_institution   # ⚡ vereinheitlicht
+from fileops import move_to_archive
 from indexer import update_index
 
 def import_file(filepath: str):
@@ -15,10 +16,24 @@ def import_file(filepath: str):
     
     print(f"📥 Importierte Datei: {filepath}")
     text = run_ocr(filepath)
-    inst = detect_institution(text)
-    archive_path = archive_file(filepath, inst)
-    update_index(archive_path, inst, text)
-    print("✅ Import abgeschlossen.")
+
+    # 🏢 Institution erkennen (Fallback = "_Unklar")
+    inst = extract_institution(text) or "_Unklar"
+
+    # 📅 Jahr bestimmen (Fallback = aktuelles Jahr)
+    year = str(datetime.now().year)
+    for token in text.split():
+        if token.isdigit() and len(token) == 4:
+            year = token
+            break
+
+    # 📦 Datei direkt ins strukturierte Archiv verschieben
+    archive_path = move_to_archive(filepath, inst, year)
+
+    # 📝 Index aktualisieren
+    update_index(archive_path, year, inst)
+
+    print(f"✅ Import abgeschlossen → {archive_path}")
 
 if __name__ == "__main__":
     # Beispiel: direkt testen

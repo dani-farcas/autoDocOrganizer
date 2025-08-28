@@ -1,19 +1,20 @@
 # ==========================================================
-# Watcher für AutoDocOrganizer
-# Überwacht ScansInbox und verschiebt neue Dateien ins Archiv
+# 📂 Watcher für AutoDocOrganizer
+# Überwacht ScansInbox und verschiebt neue Dateien direkt ins Archiv
 # ==========================================================
 
 import os
 import time
+from datetime import datetime
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
-from ocr import extract_text_from_file
-from extract_institution import detect_institution   # ⚡ Institutionserkennung
+from ocr import run_ocr
+from extract_institution import extract_institution   # ⚡ Institutionserkennung
 from fileops import move_to_archive
-from indexer import update_index                     # 📒 Index aktualisieren
+from indexer import update_index                      # 📒 Index aktualisieren
 
-# Basisordner
+# 📌 Basisordner
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 SCANS_INBOX = os.path.join(BASE_DIR, os.getenv("SCANS_INBOX", "ScansInbox"))
 
@@ -30,19 +31,23 @@ class ScanHandler(FileSystemEventHandler):
 
         try:
             # 1️⃣ OCR durchführen
-            text = extract_text_from_file(filepath)
+            text = run_ocr(filepath)
+
+            # 2️⃣ Institution erkennen (Fallback = "_Unklar")
             if not text or not text.strip():
-                print("⚠️ Kein Text erkannt – wird als 'Unklar' archiviert")
-                institution = "Unklar"
+                print("⚠️ Kein Text erkannt – wird als '_Unklar' archiviert")
+                institution = "_Unklar"
             else:
-                # 2️⃣ Institution erkennen
-                institution = detect_institution(text) or "Unklar"
+                institution = extract_institution(text) or "_Unklar"
 
-            # 3️⃣ Datei ins Archiv verschieben
-            new_path = move_to_archive(filepath, institution)
+            # 3️⃣ Jahr bestimmen (Fallback = aktuelles Jahr)
+            year = str(datetime.now().year)
 
-            # 4️⃣ Index aktualisieren
-            update_index(new_path, institution, text)
+            # 4️⃣ Datei direkt ins Archiv verschieben
+            new_path = move_to_archive(filepath, institution, year)
+
+            # 5️⃣ Index aktualisieren
+            update_index(new_path, year, institution)
 
             print(f"✅ Verarbeitet: {new_path} ({institution})")
 

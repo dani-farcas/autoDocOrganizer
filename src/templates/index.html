@@ -8,34 +8,41 @@
 </head>
 <body>
   <!-- 📢 Banner für Statusmeldungen (Erfolg / Fehler) -->
-  <div id="banner" class="banner">
+  <div id="banner" class="banner" style="display:none;">
     <span id="banner-text"></span>
     <button id="banner-close">✖</button>
   </div>
 
-  <h1>
-    📂 AutoDocOrganizer
+  <!-- 🔖 Kopfzeile -->
+  <header class="header">
+    <h1>📂 AutoDocOrganizer</h1>
+
     <!-- 📤 Upload-Formular -->
     <form class="upload-box" id="upload-form" action="/upload" method="post" enctype="multipart/form-data">
       <!-- Label als moderner Button für Dateiauswahl -->
       <label for="file-upload" class="upload-label">📂 Dateien auswählen</label>
-      <input id="file-upload" type="file" name="files" multiple>
+      <input id="file-upload" type="file" name="files" multiple hidden>
 
       <!-- Importieren-Button -->
-      <button type="submit">📤 Importieren</button>
+      <button type="submit" id="import-btn" class="import-btn" disabled>📤 Importieren</button>
 
-      <!-- ⏳ Loader-Animation -->
-      <div class="loader" id="upload-loader"></div>
+      <!-- ⏳ Loader-Animation (wird per JS ein/ausgeblendet) -->
+      <div class="loader" id="upload-loader" style="display:none;"></div>
     </form>
-  </h1>
 
-  <!-- 📌 Breadcrumb-Navigation -->
-  <div class="breadcrumb" id="breadcrumb"></div>
+    <!-- 📋 Liste der ausgewählten Dateien -->
+    <ul id="selected-files" class="selected-files"></ul>
+  </header>
+
+  <!-- 📌 Breadcrumb-Navigation (startet in Archive) -->
+  <nav class="breadcrumb" id="breadcrumb">
+    <span data-path="">Archive</span>
+  </nav>
 
   <!-- 🔍 Suchleiste -->
-<div class="search-box">
-  <input type="text" id="search-input" placeholder="🔍 Archiv durchsuchen...">
-</div>
+  <div class="search-box">
+    <input type="text" id="search-input" placeholder="🔍 Archiv durchsuchen...">
+  </div>
 
   <!-- 📋 Dateiliste -->
   <ul id="file-list"></ul>
@@ -47,5 +54,6 @@
 
   <!-- ⚡ Externes JavaScript laden -->
   <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/import.js') }}"></script>
 </body>
 </html>
