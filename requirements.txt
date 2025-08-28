@@ -1,14 +1,15 @@
-watchdog==4.0.1          # 📂 Ordnerüberwachung
-pytesseract==0.3.13      # 🔎 OCR-Engine
-pillow==10.4.0           # 🖼️ Bildverarbeitung (für OCR)
-pdf2image==1.17.0        # 📄 PDF → Bilder (Poppler)
-PyPDF2==3.0.1            # 📑 PDF-Handling (optional)
-deepl==1.18.0            # 🌍 Übersetzungen via DeepL API
-spacy==3.8.2             # 🧠 NLP für Institutionserkennung
-langdetect==1.0.9        # 🌐 Sprache erkennen
-pandas==2.2.2            # 📊 Tabellen/Analysen
-python-dotenv==1.0.1     # ⚙️ .env Variablen laden
-tabulate==0.9.0          # 📋 Hübsche Tabellen in Konsole
-requests==2.32.3         # 🌍 HTTP Requests für DeepL API
-google-generativeai==0.8.3  # 🤖 KI-Erklärungen via Gemini
-flask==3.0.3             # 🌐 Webserver für Explorer
+watchdog==4.0.1          # Ordnerüberwachung
+pytesseract==0.3.13      # OCR Engine
+pillow==10.4.0           # Bildverarbeitung (für OCR)
+pdf2image==1.17.0        # PDF → Bilder (Poppler)
+PyPDF2==3.0.1            # PDF Handling
+deepl==1.18.0            # Übersetzungen via DeepL API
+spacy==3.8.2             # NLP für Institutionserkennung
+langdetect==1.0.9        # Sprache erkennen
+pandas==2.2.2            # Tabellen/Analysen
+openai==1.42.0           # KI-Erklärungen
+flask==3.0.3             # Web-App Framework
+python-dotenv==1.0.1     # .env Variablen laden
+tabulate==0.9.0          # Tabellen in Konsole
+requests                 # HTTP Requests
+google-generativeai      # Google Gemini API

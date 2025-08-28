@@ -1,5 +1,6 @@
 # Environment
 .env
 *.pem
+__pycache__/
 
 

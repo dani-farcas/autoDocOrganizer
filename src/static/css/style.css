@@ -1,0 +1,326 @@
+/* 🌐 Basis-Layout im Microsoft Fluent Design Stil */
+body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  margin: 0;
+  padding: 20px;
+  background-color: #f3f3f3;
+  color: #323130;
+}
+
+/* 🏷️ Titel */
+h1 {
+  color: #0078d4; /* Microsoft-Blau */
+  margin-top: 0;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  font-weight: 600;
+  font-size: 1.6rem;
+}
+
+/* 📤 Upload-Box modern */
+.upload-box {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Standard-File-Input verstecken */
+.upload-box input[type="file"] {
+  display: none;
+}
+
+/* Label als moderner Button */
+.upload-label {
+  background-color: #0078d4;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.upload-label:hover {
+  background-color: #106ebe;
+}
+
+/* Importieren-Button */
+.upload-box button {
+  background-color: #f3f2f1;
+  color: #323130;
+  border: 1px solid #c8c6c4;
+  border-radius: 4px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.upload-box button:hover {
+  background-color: #e1dfdd;
+}
+
+/* ⏳ Loader (Spinner) */
+.loader {
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #0078d4;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  animation: spin 1s linear infinite;
+  display: none; /* standardmäßig ausblenden */
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 📢 Banner für Statusmeldungen */
+.banner {
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  display: none;
+  z-index: 2000;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  min-width: 280px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+/* 🎨 Erfolg */
+.banner.success {
+  background-color: #107c10; /* Microsoft-Grün */
+  color: white;
+}
+
+/* ❌ Fehler */
+.banner.error {
+  background-color: #a4262c; /* Microsoft-Rot */
+  color: white;
+}
+
+/* ✖ Close-Button */
+.banner button {
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  margin-left: auto;
+}
+
+.banner button:hover {
+  opacity: 0.8;
+}
+
+/* 📂 Breadcrumb */
+.breadcrumb {
+  margin: 12px 0 16px;
+  font-size: 0.9rem;
+  color: #605e5c;
+}
+
+.breadcrumb span {
+  cursor: pointer;
+  color: #0078d4;
+}
+
+.breadcrumb span:hover {
+  text-decoration: underline;
+}
+
+/* 🔍 Suchleiste */
+.search-box {
+  margin: 10px 0 20px;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.search-box input {
+  width: 100%;
+  max-width: 400px;
+  padding: 8px 12px;
+  font-size: 0.95rem;
+  border: 1px solid #c8c6c4;
+  border-radius: 4px;
+  outline: none;
+}
+
+.search-box input:focus {
+  border-color: #0078d4;
+  box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.2);
+}
+
+
+/* 📋 Dateiliste */
+ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border: 1px solid #e1dfdd;
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+li {
+  padding: 10px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid #edebe9;
+  transition: background 0.2s;
+}
+
+li:last-child {
+  border-bottom: none;
+}
+
+li:hover {
+  background: #f3f2f1;
+}
+
+/* 📑 Kontextmenü */
+.context-menu {
+  position: absolute;
+  background: white;
+  border: 1px solid #e1dfdd;
+  border-radius: 4px;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  min-width: 180px;
+}
+
+.context-menu button {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.9rem;
+  color: #323130;
+}
+
+.context-menu button:hover {
+  background: #f3f2f1;
+}
+
+/* 📦 Modal */
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #ffffff;
+  border: 1px solid #e1dfdd;
+  border-radius: 6px;
+  padding: 20px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow: auto;
+}
+
+.modal-content {
+  padding: 10px;
+}
+
+.modal-output {
+  width: 100%;
+  height: 250px;
+  margin-top: 10px;
+  font-size: 0.9rem;
+  font-family: monospace;
+  resize: none;
+}
+
+.modal-buttons {
+  margin-top: 10px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.modal-buttons button {
+  background-color: #0078d4;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.modal-buttons button:hover {
+  background-color: #106ebe;
+}
+
+/* 📂 Drag & Drop Zone */
+.drop-zone {
+  margin-top: 20px;
+  padding: 40px;
+  border: 2px dashed #0078d4;
+  border-radius: 6px;
+  background-color: #fafafa;
+  color: #605e5c;
+  text-align: center;
+  font-size: 0.95rem;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.drop-zone.dragover {
+  background-color: #e5f1fb;
+  border-color: #106ebe;
+}
+
+/* 📱 Responsive Design */
+@media (max-width: 768px) {
+  body {
+    padding: 10px;
+  }
+
+  h1 {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 1.2rem;
+  }
+
+  .upload-box {
+    margin-left: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  li {
+    padding: 8px 10px;
+    font-size: 0.9rem;
+  }
+
+  .modal {
+    width: 95%;
+    max-width: 95%;
+  }
+
+  .drop-zone {
+    padding: 20px;
+    font-size: 0.85rem;
+  }
+}

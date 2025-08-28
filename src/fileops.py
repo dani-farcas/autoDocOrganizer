@@ -1,20 +1,21 @@
 # ==========================================================
 # Dateiverwaltung für AutoDocOrganizer
-# Verschiebt erkannte Dokumente ins Archiv (nach Jahr + Institution)
+# Verschiebt erkannte Dokumente ins Archiv (Desktop/<Jahr>/<Institution>)
 # ==========================================================
 
 import os
 import shutil
 from datetime import datetime
 
-# Basisverzeichnis für Archiv
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-ARCHIVE_DIR = os.path.join(BASE_DIR, "Archive")
+# Basisverzeichnis = Desktop/AutoDocOrganizer
+USER_HOME = os.path.expanduser("~")
+DESKTOP_DIR = os.path.join(USER_HOME, "Desktop")
+ARCHIVE_DIR = os.path.join(DESKTOP_DIR, "AutoDocOrganizer")
 
 
 def move_to_archive(filepath: str, institution: str = "Unklar") -> str:
     """
-    Verschiebt eine Datei ins Archiv unter Archive/<Jahr>/<Institution>/
+    Verschiebt eine Datei ins Archiv unter Desktop/AutoDocOrganizer/<Jahr>/<Institution>/
     
     :param filepath: Ursprünglicher Pfad (z.B. ScansInbox/xyz.pdf)
     :param institution: erkannte Institution (Standard: Unklar)
@@ -30,10 +31,8 @@ def move_to_archive(filepath: str, institution: str = "Unklar") -> str:
     # Jahr aus aktuellem Datum bestimmen
     year = str(datetime.now().year)
 
-    # Zielordner bestimmen: Archive/<Jahr>/<Institution>
+    # Zielordner bestimmen: Desktop/AutoDocOrganizer/<Jahr>/<Institution>
     target_dir = os.path.join(ARCHIVE_DIR, year, institution)
-
-    # Falls Ordner fehlt → anlegen
     os.makedirs(target_dir, exist_ok=True)
 
     # Zieldateipfad
@@ -56,7 +55,7 @@ def move_to_archive(filepath: str, institution: str = "Unklar") -> str:
 
 # 🧪 Testmodus: Direktes Ausführen
 if __name__ == "__main__":
-    test_file = os.path.join(BASE_DIR, "ScansInbox", "test.pdf")
+    test_file = os.path.join(USER_HOME, "ScansInbox", "test.pdf")
     try:
         new_path = move_to_archive(test_file, "Finanzamt")
         print(f"✅ Datei verschoben: {new_path}")
