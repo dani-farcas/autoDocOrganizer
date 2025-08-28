@@ -1,6 +1,32 @@
-# Environment
+# 🔑 Secrets
 .env
 *.pem
+
+# 🐍 Python Cache
 __pycache__/
+*.pyc
+*.pyo
+*.pyd
 
+# 🏗️ Virtual Environments
+venv/
+ENV/
+.venv/
 
+# 📝 Logs
+*.log
+
+# 💻 System
+.DS_Store
+Thumbs.db
+
+# 🛠️ VSCode
+.vscode/
+
+# ⚡ Flask/Temp
+instance/
+*.pid
+
+# 📂 Project specific
+ScansInbox/
+Archive/
