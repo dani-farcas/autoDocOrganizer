@@ -1,20 +1,19 @@
+# 📁 .github/workflows/deploy.yml
 name: Deploy to EC2
 
 on:
   push:
     branches:
-      - dev-frontend   # 🚀 Workflow startet automatisch bei Push auf dev-frontend.
+      - dev-frontend   # 🚀 Startet bei jedem Push auf dev-frontend
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # 📥 Repository auschecken
       - name: Repository auschecken
         uses: actions/checkout@v3
 
-      # 🔑 AWS-Zugangsdaten konfigurieren
       - name: AWS Zugangsdaten konfigurieren
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -22,7 +21,6 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      # 🚀 Deployment auf EC2
       - name: Deploy auf EC2 via SSM
         run: |
           aws ssm send-command \
@@ -37,5 +35,5 @@ jobs:
               "pip install --upgrade pip",
               "pip install -r requirements.txt",
               "pkill -f gunicorn || true",
-              "nohup venv/bin/gunicorn -b 0.0.0.0:5000 src.app:app > gunicorn.log 2>&1 &"
+              "nohup venv/bin/gunicorn -b 0.0.0.0:80 src.app:app > gunicorn.log 2>&1 &"
             ]'
