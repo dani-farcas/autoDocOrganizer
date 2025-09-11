@@ -1,6 +1,14 @@
 # Environment
-.env
-*.pem
+# Ignoră dependențele Node
+node_modules/
+# Ignoră mediul virtual Python
+venv/
+# Cache-uri Python
 __pycache__/
-
+*.pyc
+*.pyo
+*.pyd
+# Fișiere temporare
+.env
+.DS_Store
 

@@ -1,13 +1,15 @@
 # ==========================================================
 # 🌐 AutoDocOrganizer – Flask Backend
-# Zuständig für Upload, Archivierung, Suche und Download
+# Zuständig für Upload, Archivierung, Suche, Download,
+# Übersetzen und Erklären
 # ==========================================================
 
 import os
-import shutil
 import csv
+from datetime import datetime
 from flask import Flask, request, jsonify, send_file, render_template
 
+# 📚 Eigene Module
 from ocr import run_ocr
 from translate import translate_text
 from explain import explain_text
@@ -15,27 +17,68 @@ from extract_institution import extract_institution
 from fileops import move_to_archive
 from indexer import update_index
 
-# Flask-App initialisieren
+# ==========================================================
+# 🚀 Flask-App initialisieren
+# ==========================================================
 app = Flask(__name__, static_folder="static", template_folder="templates")
 
 # ==========================================================
-# 📂 Projektpfade
+# 📂 Projektpfade definieren
 # ==========================================================
-USER_HOME = os.path.expanduser("~")
-DESKTOP_DIR = os.path.join(USER_HOME, "Desktop")
-DESKTOP_TARGET = os.path.join(DESKTOP_DIR, "AutoDocOrganizer")
-INDEX_FILE = os.path.join(DESKTOP_TARGET, "index.csv")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))   # src/
+PROJECT_ROOT = os.path.dirname(BASE_DIR)               # AutoDocOrganizer/
+ARCHIVE_DIR = os.path.join(PROJECT_ROOT, "Archive")    # Archiv im Projekt
+INDEX_FILE = os.path.join(ARCHIVE_DIR, "index.csv")    # Index in Archive/
 
-# Falls noch nicht vorhanden → Hauptordner erstellen
-os.makedirs(DESKTOP_TARGET, exist_ok=True)
+# Archiv-Ordner erstellen, falls nicht vorhanden
+os.makedirs(ARCHIVE_DIR, exist_ok=True)
 
 
 # ==========================================================
-# 🌐 Hauptseite (Frontend laden)
+# 🌐 Hauptseite (Frontend)
 # ==========================================================
 @app.route("/")
 def index():
+    """Lädt die Startseite (Frontend)"""
     return render_template("index.html")
+
+
+# ==========================================================
+# 📂 Dateien und Ordner im Archiv auflisten
+# ==========================================================
+@app.route("/list")
+def list_files():
+    """
+    Gibt alle Dateien UND Ordner im Archiv zurück (für Explorer-Ansicht)
+    """
+    folder = request.args.get("path", ARCHIVE_DIR)
+
+    if not os.path.exists(folder):
+        return jsonify({"error": f"Ordner {folder} nicht gefunden"}), 404
+
+    result = []
+
+    # ➡️ Ordner zuerst
+    for d in sorted(os.listdir(folder)):
+        abs_path = os.path.join(folder, d)
+        if os.path.isdir(abs_path):
+            result.append({
+                "type": "folder",
+                "name": d,
+                "path": os.path.relpath(abs_path, PROJECT_ROOT)
+            })
+
+    # ➡️ Dateien danach
+    for f in sorted(os.listdir(folder)):
+        abs_path = os.path.join(folder, f)
+        if os.path.isfile(abs_path):
+            result.append({
+                "type": "file",
+                "name": f,
+                "path": os.path.relpath(abs_path, PROJECT_ROOT)
+            })
+
+    return jsonify(result)
 
 
 # ==========================================================
@@ -43,49 +86,54 @@ def index():
 # ==========================================================
 @app.route("/upload", methods=["POST"])
 def upload_files():
+    """
+    Nimmt hochgeladene Dateien entgegen, führt OCR durch,
+    erkennt Institution & Jahr, verschiebt ins Archiv und
+    aktualisiert den Index.
+    """
     files = request.files.getlist("files")
     if not files:
         return jsonify({"error": "Keine Dateien hochgeladen"}), 400
 
     saved_files = []
     for file in files:
-        # Temporär speichern im Desktop/AutoDocOrganizer
-        temp_path = os.path.join(DESKTOP_TARGET, file.filename)
+        # Datei temporär im Archiv-Root speichern
+        temp_path = os.path.join(ARCHIVE_DIR, file.filename)
         file.save(temp_path)
 
-        # 📝 OCR → Text extrahieren
+        # OCR ausführen
         text = run_ocr(temp_path)
 
-        # 🏢 Institution erkennen
+        # Institution erkennen
         institution = extract_institution(text)
 
-        # 📅 Jahr erkennen (Fallback = aktuelles Jahr)
-        year = str(os.path.basename(os.path.dirname(temp_path)))
-        if not year.isdigit():
-            year = str(os.path.basename(os.path.dirname(DESKTOP_TARGET)))
-
-        # Falls Text doch ein Jahr enthält → überschreiben
+        # Jahr bestimmen (Standard = aktuelles Jahr)
+        year = str(datetime.now().year)
         for token in text.split():
             if token.isdigit() and len(token) == 4:
                 year = token
                 break
 
-        # 📦 Datei verschieben ins strukturierte Archiv
+        # Datei verschieben ins strukturierte Archiv
         final_path = move_to_archive(temp_path, institution)
 
-        # 📝 Index aktualisieren
+        # Index aktualisieren
         update_index(final_path, year, institution)
 
-        saved_files.append(final_path)
+        saved_files.append(os.path.relpath(final_path, PROJECT_ROOT))
 
     return jsonify({"status": "ok", "files": saved_files})
 
 
 # ==========================================================
-# 🔍 Suche im Index (Archiv durchsuchen)
+# 🔍 Suche im Index
 # ==========================================================
 @app.route("/search")
 def search():
+    """
+    Durchsucht die Index-Datei nach Begriffen
+    (Dateiname, Institution, Jahr)
+    """
     query = request.args.get("query", "").lower()
     results = []
 
@@ -109,17 +157,21 @@ def search():
 
 
 # ==========================================================
-# 🗑️ Originale löschen (nach Drag&Drop-Upload)
+# 🗑️ Dateien löschen
 # ==========================================================
-@app.route("/delete_originals", methods=["POST"])
-def delete_originals():
+@app.route("/delete", methods=["POST"])
+def delete_files():
+    """
+    Löscht angegebene Dateien aus dem Archiv
+    """
     data = request.get_json()
     filenames = data.get("filenames", [])
-    desktop = os.path.join(os.path.expanduser("~"), "Desktop")
 
     for fname in filenames:
+        abs_path = os.path.join(ARCHIVE_DIR, fname)
         try:
-            os.remove(os.path.join(desktop, fname))
+            if os.path.exists(abs_path):
+                os.remove(abs_path)
         except Exception as e:
             print(f"⚠️ Konnte Datei nicht löschen: {fname} – {e}")
 
@@ -131,19 +183,83 @@ def delete_originals():
 # ==========================================================
 @app.route("/download")
 def download_file():
-    file_path = request.args.get("file")
-    if not file_path or not os.path.exists(file_path):
-        return jsonify({"error": "Datei nicht gefunden"}), 404
-    return send_file(file_path, as_attachment=False)
+    rel_path = request.args.get("file")
+    if not rel_path:
+        return jsonify({"error": "Datei nicht angegeben"}), 400
+
+    abs_path = os.path.join(PROJECT_ROOT, rel_path)
+
+    if not os.path.exists(abs_path):
+        return jsonify({"error": f"Datei nicht gefunden: {rel_path}"}), 404
+
+    return send_file(abs_path, as_attachment=False)
 
 
-# 📥 Forciertes Herunterladen (Speichern unter)
 @app.route("/force_download")
 def force_download():
-    file_path = request.args.get("file")
-    if not file_path or not os.path.exists(file_path):
-        return jsonify({"error": "Datei nicht gefunden"}), 404
-    return send_file(file_path, as_attachment=True)
+    rel_path = request.args.get("file")
+    if not rel_path:
+        return jsonify({"error": "Datei nicht angegeben"}), 400
+
+    abs_path = os.path.join(PROJECT_ROOT, rel_path)
+
+    if not os.path.exists(abs_path):
+        return jsonify({"error": f"Datei nicht gefunden: {rel_path}"}), 404
+
+    return send_file(abs_path, as_attachment=True)
+
+
+# ==========================================================
+# 🌍 Datei übersetzen
+# ==========================================================
+@app.route("/translate")
+def translate_file():
+    """
+    Übersetzt den OCR-Text einer Datei in die gewünschte Sprache.
+    """
+    rel_path = request.args.get("file")
+    lang = request.args.get("lang", "EN")
+
+    if not rel_path:
+        return jsonify({"error": "Keine Datei angegeben"}), 400
+
+    abs_path = os.path.join(PROJECT_ROOT, rel_path)
+    if not os.path.exists(abs_path):
+        return jsonify({"error": f"Datei nicht gefunden: {rel_path}"}), 404
+
+    # OCR ausführen
+    text = run_ocr(abs_path)
+
+    # Übersetzen
+    translated = translate_text(text, lang)
+
+    return translated
+
+
+# ==========================================================
+# 📖 Dokument erklären
+# ==========================================================
+@app.route("/explain")
+def explain_file():
+    """
+    Erklärt den OCR-Text einer Datei in einfacher Sprache.
+    """
+    rel_path = request.args.get("file")
+
+    if not rel_path:
+        return jsonify({"error": "Keine Datei angegeben"}), 400
+
+    abs_path = os.path.join(PROJECT_ROOT, rel_path)
+    if not os.path.exists(abs_path):
+        return jsonify({"error": f"Datei nicht gefunden: {rel_path}"}), 404
+
+    # OCR ausführen
+    text = run_ocr(abs_path)
+
+    # Erklärung erzeugen
+    explanation = explain_text(text)
+
+    return explanation
 
 
 # ==========================================================

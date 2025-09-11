@@ -81,37 +81,29 @@ h1 {
   100% { transform: rotate(360deg); }
 }
 
-/* 📢 Banner für Statusmeldungen */
+
+/* Banner standardmäßig ausblenden */
 .banner {
-  position: fixed;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 10px 20px;
-  border-radius: 6px;
-  font-size: 0.95rem;
-  font-weight: 500;
-  display: none;
-  z-index: 2000;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-  min-width: 280px;
-  display: flex;
+  display: none;              /* Banner unsichtbar am Anfang */
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  padding: 10px 20px;
+  margin: 10px 0;
+  border-radius: 6px;
+  font-weight: 500;
+  color: white;
 }
 
-/* 🎨 Erfolg */
+/* Erfolgsmeldung */
 .banner.success {
-  background-color: #107c10; /* Microsoft-Grün */
-  color: white;
+  background-color: #16a34a;  /* Grün */
 }
 
-/* ❌ Fehler */
+/* Fehlermeldung */
 .banner.error {
-  background-color: #a4262c; /* Microsoft-Rot */
-  color: white;
+  background-color: #dc2626;  /* Rot */
 }
+
 
 /* ✖ Close-Button */
 .banner button {
@@ -220,42 +212,73 @@ li:hover {
   background: #f3f2f1;
 }
 
-/* 📦 Modal */
+/* =========================================================
+   📐 Modal-Fenster – skaliert gleichmäßig mit Animation
+   ========================================================= */
+
 .modal {
   position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+
   background: #ffffff;
-  border: 1px solid #e1dfdd;
-  border-radius: 6px;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  /* 👉 Mindest- und Maximalgrößen */
+  min-width: 400px;
+  min-height: 250px;
+  max-width: 90vw;
+  max-height: 90vh;
+
+  /* 👉 Skalierung über Ziehen */
+  resize: both;
+  overflow: hidden;
   padding: 20px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
-  width: 90%;
-  max-width: 600px;
-  max-height: 80vh;
-  overflow: auto;
+
+  /* 🎬 Sanfte Animation bei Größenänderung */
+  transition: width 0.25s ease, height 0.25s ease;
 }
 
+/* Inhalte passen sich automatisch an */
 .modal-content {
-  padding: 10px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.modal-output {
+/* Sprach-Auswahl */
+.modal-content select {
   width: 100%;
-  height: 250px;
-  margin-top: 10px;
-  font-size: 0.9rem;
-  font-family: monospace;
-  resize: none;
+  padding: 6px;
+  font-size: 1em;
 }
 
+/* Textausgabe → wächst mit dem Modal */
+.modal-output {
+  flex: 1;
+  width: 100%;
+  padding: 10px;
+  font-family: monospace;
+  font-size: 0.95rem;
+  resize: none; /* 👉 eigenes Resize deaktiviert */
+  transition: font-size 0.25s ease, padding 0.25s ease;
+}
+
+/* Buttons bleiben unten */
 .modal-buttons {
-  margin-top: 10px;
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 10px;
+  transition: gap 0.25s ease;
 }
+
 
 .modal-buttons button {
   background-color: #0078d4;

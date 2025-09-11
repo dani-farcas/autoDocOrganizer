@@ -1,19 +1,20 @@
 # ==========================================================
-# Indexverwaltung für AutoDocOrganizer
-# Hält eine CSV-Liste aller archivierten Dateien fest
+# 🗂️ Indexverwaltung für AutoDocOrganizer
+# Hält eine CSV-Liste aller archivierten Dateien fest:
+#   Archive/index.csv
 # ==========================================================
 
 import os
 import csv
 from datetime import datetime
 
-# 📌 Ziel: Desktop/AutoDocOrganizer/index.csv
-USER_HOME = os.path.expanduser("~")
-DESKTOP_DIR = os.path.join(USER_HOME, "Desktop")
-ARCHIVE_DIR = os.path.join(DESKTOP_DIR, "AutoDocOrganizer")
+# 📌 Basis: Projekt/Archive/index.csv
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))   # src/
+PROJECT_ROOT = os.path.dirname(BASE_DIR)               # AutoDocOrganizer/
+ARCHIVE_DIR = os.path.join(PROJECT_ROOT, "Archive")
 INDEX_FILE = os.path.join(ARCHIVE_DIR, "index.csv")
 
-# Sicherstellen, dass Basisordner existiert
+# Sicherstellen, dass Archiv-Ordner existiert
 os.makedirs(ARCHIVE_DIR, exist_ok=True)
 
 
@@ -31,20 +32,20 @@ def update_index(file_path: str, year: str, institution: str):
     if not institution or not str(institution).strip():
         institution = "Unklar"
 
-    # Falls Datei nicht existiert → Exception
+    # Prüfen, ob Datei existiert
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"❌ Datei nicht gefunden für Index: {file_path}")
 
     # CSV-Header
     header = ["Datei", "Jahr", "Institution", "Pfad", "Eingetragen am"]
 
-    # Zeile für Index
+    # Zeile für Index (Pfad relativ zum Archiv)
     row = [
-        os.path.basename(file_path),
-        year,
-        institution,
-        file_path,
-        datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        os.path.basename(file_path),         # Dateiname
+        year,                                # Jahr
+        institution,                         # Institution
+        os.path.relpath(file_path, ARCHIVE_DIR),  # relativer Pfad
+        datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Timestamp
     ]
 
     # Schreiben / Anhängen

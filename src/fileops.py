@@ -1,63 +1,45 @@
 # ==========================================================
-# Dateiverwaltung für AutoDocOrganizer
-# Verschiebt erkannte Dokumente ins Archiv (Desktop/<Jahr>/<Institution>)
+# 📂 Dateiverwaltung für AutoDocOrganizer
+# Verschiebt erkannte Dokumente ins Projektarchiv:
+#   Archive/<Jahr>/<Institution>/
 # ==========================================================
 
 import os
 import shutil
 from datetime import datetime
 
-# Basisverzeichnis = Desktop/AutoDocOrganizer
-USER_HOME = os.path.expanduser("~")
-DESKTOP_DIR = os.path.join(USER_HOME, "Desktop")
-ARCHIVE_DIR = os.path.join(DESKTOP_DIR, "AutoDocOrganizer")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))   # src/
+PROJECT_ROOT = os.path.dirname(BASE_DIR)               # AutoDocOrganizer/
+ARCHIVE_DIR = os.path.join(PROJECT_ROOT, "Archive")
 
+os.makedirs(ARCHIVE_DIR, exist_ok=True)
 
 def move_to_archive(filepath: str, institution: str = "Unklar") -> str:
-    """
-    Verschiebt eine Datei ins Archiv unter Desktop/AutoDocOrganizer/<Jahr>/<Institution>/
-    
-    :param filepath: Ursprünglicher Pfad (z.B. ScansInbox/xyz.pdf)
-    :param institution: erkannte Institution (Standard: Unklar)
-    :return: Neuer Zielpfad im Archiv
-    """
+    """Verschiebt eine Datei ins Archiv: Archive/<Jahr>/<Institution>/"""
     if not os.path.exists(filepath):
         raise FileNotFoundError(f"❌ Datei nicht gefunden: {filepath}")
 
-    # 🛡️ Fallback, falls Institution leer oder None
     if not institution or not str(institution).strip():
         institution = "Unklar"
 
-    # Jahr aus aktuellem Datum bestimmen
+    safe_institution = "".join(c for c in institution if c.isalnum() or c in (" ", "_", "-")).strip()
+    if not safe_institution:
+        safe_institution = "Unklar"
+
     year = str(datetime.now().year)
 
-    # Zielordner bestimmen: Desktop/AutoDocOrganizer/<Jahr>/<Institution>
-    target_dir = os.path.join(ARCHIVE_DIR, year, institution)
+    target_dir = os.path.join(ARCHIVE_DIR, year, safe_institution)
     os.makedirs(target_dir, exist_ok=True)
 
-    # Zieldateipfad
     filename = os.path.basename(filepath)
     target_path = os.path.join(target_dir, filename)
 
-    # Falls Datei schon existiert → eindeutigen Namen erzeugen
     counter = 1
     base, ext = os.path.splitext(filename)
     while os.path.exists(target_path):
         target_path = os.path.join(target_dir, f"{base}_{counter}{ext}")
         counter += 1
 
-    # Datei verschieben
     shutil.move(filepath, target_path)
-
     print(f"📦 Verschoben nach: {target_path}")
     return target_path
-
-
-# 🧪 Testmodus: Direktes Ausführen
-if __name__ == "__main__":
-    test_file = os.path.join(USER_HOME, "ScansInbox", "test.pdf")
-    try:
-        new_path = move_to_archive(test_file, "Finanzamt")
-        print(f"✅ Datei verschoben: {new_path}")
-    except Exception as e:
-        print(e)

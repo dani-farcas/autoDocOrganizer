@@ -185,26 +185,30 @@ async function loadFolder(path = "Archive") {
   const ul = document.getElementById("file-list");
   ul.innerHTML = "";
 
-  items.forEach(item => {
-    let rel = normalizeToArchivePath(item.path);
-    const li = document.createElement("li");
-    li.textContent = (item.type === "folder" ? "📂 " : "📄 ") + item.name;
+ items.forEach(item => {
+  let rel = normalizeToArchivePath(item.path);
+  const li = document.createElement("li");
 
-    if (item.type === "folder") {
-      li.ondblclick = () => loadFolder(rel);
-      li.oncontextmenu = (e) => {
-        e.preventDefault();
-        showFolderMenu(e.pageX, e.pageY, rel);
-      };
-    } else {
-      li.ondblclick = () => openFile(rel);
-      li.oncontextmenu = (e) => {
-        e.preventDefault();
-        showFileMenu(e.pageX, e.pageY, rel);
-      };
-    }
-    ul.appendChild(li);
-  });
+  if (item.type === "folder") {
+    li.textContent = "📂 " + item.name;
+    li.ondblclick = () => loadFolder(rel);
+    li.oncontextmenu = (e) => {
+      e.preventDefault();
+      showFolderMenu(e.pageX, e.pageY, rel);
+    };
+  } else {
+    li.textContent = "📄 " + item.name;
+    li.ondblclick = () => openFile(rel);
+    li.oncontextmenu = (e) => {
+      e.preventDefault();
+      showFileMenu(e.pageX, e.pageY, rel);
+    };
+  }
+
+  ul.appendChild(li);
+});
+
+
 }
 
 // =========================================================

@@ -1,0 +1,15 @@
+flowchart TD
+
+A[Projektentwickler gibt Daten in Eco-Match BOT] --> B{Sind die Eingaben präzise?}
+B -- Nein --> C[EM-BOT stellt Rückfragen]
+C --> B
+B -- Ja --> D[EM-BOT erstellt Übersicht der benötigten Gutachten]
+D --> E["Ausgefüllte Suchmaske:<br/>• Projekttart<br/>• Standort (PLZ)<br/>• Benötigte Gutachten<br/>• Kurzbeschreibung"]
+
+F[Direktzugang zur Suchmaske] --> G["Projektentwickler füllt Maske aus:<br/>• Projekttart<br/>• Standort (PLZ)<br/>• Benötigte Gutachten<br/>• Kurzbeschreibung"]
+G --> E
+
+E --> H[Plattform: Matching-Prozess]
+H --> I{Finden sich passende Gutachter?}
+I -- Nein --> J[Keine passenden Gutachter gefunden]
+I -- Ja --> K[Gutachter erhalten Daten und Aufforderung zur Kontaktaufnahme]
