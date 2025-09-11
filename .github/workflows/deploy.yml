@@ -1,0 +1,54 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - main   # 🚀 Workflow wird automatisch ausgeführt, wenn auf den main-Branch gepusht wird
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest   # GitHub Actions Runner (Ubuntu Umgebung)
+
+    steps:
+      # 📥 Repository auschecken
+      - name: Repository auschecken
+        uses: actions/checkout@v3
+
+      # 🔑 AWS-Zugangsdaten aus GitHub Secrets konfigurieren
+      - name: AWS Zugangsdaten konfigurieren
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # 🚀 Deployment-Skript auf EC2 über AWS Systems Manager (SSM) ausführen
+      - name: Deploy auf EC2 via SSM
+        run: |
+          aws ssm send-command \
+            --targets "Key=instanceIds,Values=${{ secrets.EC2_INSTANCE_ID }}" \
+            --document-name "AWS-RunShellScript" \
+            --comment "Deploy AutoDocOrganizer" \
+            --parameters 'commands=[
+              # 📂 Arbeitsverzeichnis wechseln
+              "cd /home/ubuntu || exit 1",
+
+              # 🔄 Projekt aktualisieren: Falls Ordner existiert → git reset + git pull, sonst git clone
+              "if [ -d AutoDocOrganizer ]; then cd AutoDocOrganizer && git reset --hard && git pull origin main; else git clone https://github.com/dani-farcas/autoDocOrganizer.git AutoDocOrganizer && cd AutoDocOrganizer; fi",
+
+              # 🐍 Virtuelle Umgebung erstellen (falls nicht vorhanden)
+              "python3 -m venv venv",
+
+              # 🟢 Virtuelle Umgebung aktivieren
+              "source venv/bin/activate",
+
+              # 📦 Abhängigkeiten installieren / aktualisieren
+              "pip install --upgrade pip",
+              "pip install -r requirements.txt",
+
+              # 🛑 Alten Gunicorn-Prozess beenden (falls läuft)
+              "pkill -f gunicorn || true",
+
+              # ▶️ Gunicorn im Hintergrund starten (bindet an Port 5000)
+              "nohup venv/bin/gunicorn -b 0.0.0.0:5000 src.app:app > gunicorn.log 2>&1 &"
+            ]'
