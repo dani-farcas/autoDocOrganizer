@@ -41,7 +41,6 @@ function showBanner(message, type = "success") {
     banner.style.display = "none";
   };
 
-  // Automatisch nach 3 Sekunden schließen
   setTimeout(() => {
     if (banner.style.display === "flex") {
       banner.style.display = "none";
@@ -115,7 +114,6 @@ if (dropZone) {
       const res = await fetch("/upload", { method: "POST", body: formData });
 
       if (res.ok) {
-        // 👉 Benutzer fragen ob Original gelöscht werden soll
         const confirmDelete = confirm("✅ Upload erfolgreich!\n\nMöchten Sie die Original-Dateien vom Desktop löschen?");
         if (confirmDelete) {
           await fetch("/delete_originals", {
@@ -185,30 +183,28 @@ async function loadFolder(path = "Archive") {
   const ul = document.getElementById("file-list");
   ul.innerHTML = "";
 
- items.forEach(item => {
-  let rel = normalizeToArchivePath(item.path);
-  const li = document.createElement("li");
+  items.forEach(item => {
+    let rel = normalizeToArchivePath(item.path);
+    const li = document.createElement("li");
 
-  if (item.type === "folder") {
-    li.textContent = "📂 " + item.name;
-    li.ondblclick = () => loadFolder(rel);
-    li.oncontextmenu = (e) => {
-      e.preventDefault();
-      showFolderMenu(e.pageX, e.pageY, rel);
-    };
-  } else {
-    li.textContent = "📄 " + item.name;
-    li.ondblclick = () => openFile(rel);
-    li.oncontextmenu = (e) => {
-      e.preventDefault();
-      showFileMenu(e.pageX, e.pageY, rel);
-    };
-  }
+    if (item.type === "folder") {
+      li.textContent = "📂 " + item.name;
+      li.ondblclick = () => loadFolder(rel);
+      li.oncontextmenu = (e) => {
+        e.preventDefault();
+        showFolderMenu(e.pageX, e.pageY, rel);
+      };
+    } else {
+      li.textContent = "📄 " + item.name;
+      li.ondblclick = () => openFile(rel);
+      li.oncontextmenu = (e) => {
+        e.preventDefault();
+        showFileMenu(e.pageX, e.pageY, rel);
+      };
+    }
 
-  ul.appendChild(li);
-});
-
-
+    ul.appendChild(li);
+  });
 }
 
 // =========================================================
@@ -252,7 +248,7 @@ async function renameFolder(path) {
 }
 
 // =========================================================
-// ❌ Datei / Ordner löschen
+// ❌ Datei / Ordner löschen (FIXED!)
 // =========================================================
 async function deleteFile(path) {
   const rel = normalizeToArchivePath(path);
@@ -260,17 +256,17 @@ async function deleteFile(path) {
   const res = await fetch("/delete", { 
     method: "POST", 
     headers: {"Content-Type": "application/json"}, 
-    body: JSON.stringify({ file: rel }) 
+    body: JSON.stringify({ filenames: [rel] })   // ✅ FIX
   });
   if (res.ok) loadFolder(currentPath); else showBanner("❌ Fehler beim Löschen", "error");
 }
 
 async function deleteFolder(path) {
-  if (!confirm("Ordner wirklich löschen (inkl. aller Dateien)?")) return;
+  if (!confirm("Ordner wirklich löschen (nur wenn leer)?")) return;
   const res = await fetch("/delete_folder", {
     method: "POST",
     headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({ folder: path })
+    body: JSON.stringify({ path: path })   // ✅ FIX
   });
   if (res.ok) loadFolder(dirname(path)); else showBanner("❌ Fehler beim Löschen des Ordners", "error");
 }
@@ -286,7 +282,6 @@ document.addEventListener("DOMContentLoaded", () => {
       const query = searchInput.value.trim();
 
       if (query.length < 2) {
-        // Wenn Eingabe zu kurz → normale Ordneransicht
         loadFolder();
         return;
       }
@@ -310,7 +305,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
-
 
 // =========================================================
 // 📑 Kontextmenüs
@@ -357,7 +351,6 @@ async function explainFile(path) {
   createModal(path, "Erklären", "/explain");
 }
 
-// Hilfsfunktion: Modal generieren
 function createModal(path, actionLabel, endpoint) {
   const rel = normalizeToArchivePath(path);
 
