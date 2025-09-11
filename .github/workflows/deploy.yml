@@ -3,7 +3,7 @@ name: Deploy to EC2
 on:
   push:
     branches:
-      - dev-frontend   # 🚀 Workflow startet automatisch bei Push auf dev-frontend
+      - dev-frontend   # 🚀 Workflow startet automatisch bei Push auf dev-frontend.
 
 jobs:
   deploy:
