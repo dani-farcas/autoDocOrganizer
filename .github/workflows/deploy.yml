@@ -3,7 +3,7 @@ name: Deploy to EC2
 on:
   push:
     branches:
-      - main   # 🚀 Workflow wird automatisch ausgeführt, wenn auf den main-Branch gepusht wird
+      - dev-frontend   # 🚀 Workflow startet nur bei Push auf dev-frontend
 
 jobs:
   deploy:
@@ -33,8 +33,8 @@ jobs:
               # 📂 Arbeitsverzeichnis wechseln
               "cd /home/ubuntu || exit 1",
 
-              # 🔄 Projekt aktualisieren: Falls Ordner existiert → git reset + git pull, sonst git clone
-              "if [ -d AutoDocOrganizer ]; then cd AutoDocOrganizer && git reset --hard && git pull origin main; else git clone https://github.com/dani-farcas/autoDocOrganizer.git AutoDocOrganizer && cd AutoDocOrganizer; fi",
+              # 🔄 Projekt aktualisieren: Falls Ordner existiert → git reset + git pull (dev-frontend), sonst git clone
+              "if [ -d AutoDocOrganizer ]; then cd AutoDocOrganizer && git reset --hard && git pull origin dev-frontend; else git clone -b dev-frontend https://github.com/dani-farcas/autoDocOrganizer.git AutoDocOrganizer && cd AutoDocOrganizer; fi",
 
               # 🐍 Virtuelle Umgebung erstellen (falls nicht vorhanden)
               "python3 -m venv venv",
