@@ -1,0 +1,19 @@
+flowchart TB
+    %% Entități
+    A[Computer]
+    B[Komponente]
+    C[Hersteller]
+    D[Kategorie]
+    E[Verkäufer]
+
+    %% Relații
+    R1{enthält}
+    R2{bezieht}
+    R3{gehört zu}
+    R4{verkauft}
+
+    %% Aranjament vertical clar
+    A -- N --- R1 --- N --> B
+    B -- N --- R2 --- 1 --> C
+    B -- N --- R3 --- 1 --> D
+    A -- N --- R4 --- 1 --> E
