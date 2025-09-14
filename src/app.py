@@ -3,9 +3,10 @@
 # ==========================================================
 import os
 from datetime import datetime
+from urllib.parse import unquote   # ✅ wichtig für URL-Decodierung
 from flask import Flask, request, jsonify, send_file, render_template
 
-# 🔄 Eigene Module aus src/
+# 🔄 Eigene Module
 from src.ocr import run_ocr
 from src.extract_institution import extract_institution
 from src.indexer import update_index
@@ -17,9 +18,8 @@ from src.explain import explain_text
 # ----------------------------------------------------------
 app = Flask(__name__)
 
-# Projektverzeichnisse
-PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
-ARCHIVE_DIR = os.path.join(os.path.expanduser("~"), "Desktop", "AutoDocOrganizer", "Archive")
+# Projektverzeichnis (statisch)
+ARCHIVE_DIR = "/home/ubuntu/autoDocOrganizer/Archive"
 os.makedirs(ARCHIVE_DIR, exist_ok=True)
 
 
@@ -28,12 +28,7 @@ os.makedirs(ARCHIVE_DIR, exist_ok=True)
 # ==========================================================
 @app.route("/upload", methods=["POST"])
 def upload_files():
-    """
-    Dateien hochladen:
-    - Institution aus OCR-Text extrahieren
-    - Datei nach Archive/<Jahr>/<Institution>/ verschieben
-    - Index aktualisieren
-    """
+    """Dateien hochladen und ins Archiv verschieben"""
     if "files" not in request.files:
         return jsonify({"error": "Keine Dateien hochgeladen"}), 400
 
@@ -44,25 +39,20 @@ def upload_files():
         if file.filename == "":
             continue
 
-        # Temporär speichern
-        tmp_path = os.path.join(PROJECT_ROOT, file.filename)
+        tmp_path = os.path.join(ARCHIVE_DIR, file.filename)
         file.save(tmp_path)
 
-        # OCR → Text
         text = run_ocr(tmp_path)
         institution = extract_institution(text) or "_Unklar"
         year = datetime.now().year
 
-        # Zielordner vorbereiten
         target_dir = os.path.join(ARCHIVE_DIR, str(year), institution)
         os.makedirs(target_dir, exist_ok=True)
 
         final_path = os.path.join(target_dir, file.filename)
         os.replace(tmp_path, final_path)
 
-        # Index aktualisieren
         update_index(final_path, institution, year)
-
         saved.append(final_path)
         print(f"📦 Verschoben nach: {final_path}")
 
@@ -74,11 +64,7 @@ def upload_files():
 # ==========================================================
 @app.route("/list")
 def list_files():
-    """
-    Listet Inhalte eines Ordners im Archiv
-    - Query-Param `path` = relativer Pfad ("" = Root)
-    - Liefert: name, path, is_dir
-    """
+    """Listet Inhalte eines Ordners im Archiv"""
     rel_path = (request.args.get("path", "") or "").strip().strip("/\\")
     if rel_path == "Archive":
         rel_path = ""
@@ -96,7 +82,6 @@ def list_files():
     entries = []
     names = sorted(os.listdir(abs_path), key=str.casefold)
 
-    # Ordner zuerst
     for name in names:
         full = os.path.join(abs_path, name)
         if os.path.isdir(full):
@@ -106,7 +91,6 @@ def list_files():
                 "is_dir": True,
             })
 
-    # Dateien danach
     for name in names:
         full = os.path.join(abs_path, name)
         if os.path.isfile(full):
@@ -124,12 +108,11 @@ def list_files():
 # ==========================================================
 @app.route("/download")
 def download_file():
-    rel_path = request.args.get("file")
+    rel_path = unquote(request.args.get("file", ""))
     if not rel_path:
         return jsonify({"error": "Keine Datei angegeben"}), 400
 
     abs_path = os.path.abspath(os.path.join(ARCHIVE_DIR, rel_path))
-
     if not abs_path.startswith(os.path.abspath(ARCHIVE_DIR)):
         return jsonify({"error": "Ungültiger Pfad"}), 400
     if not os.path.isfile(abs_path):
@@ -143,17 +126,13 @@ def download_file():
 # ==========================================================
 @app.route("/delete", methods=["POST"])
 def delete_files():
-    """
-    Löscht Dateien oder leere Ordner aus dem Archiv
-    """
+    """Löscht Dateien oder leere Ordner"""
     data = request.get_json()
     filenames = data.get("filenames", [])
 
     deleted, errors = [], []
-
     for rel_path in filenames:
         abs_path = os.path.abspath(os.path.join(ARCHIVE_DIR, rel_path))
-
         if not abs_path.startswith(os.path.abspath(ARCHIVE_DIR)):
             errors.append({rel_path: "Ungültiger Pfad"})
             continue
@@ -163,12 +142,12 @@ def delete_files():
                 if os.path.isfile(abs_path):
                     os.remove(abs_path)
                 elif os.path.isdir(abs_path):
-                    os.rmdir(abs_path)  # nur leere Ordner
+                    os.rmdir(abs_path)
                 deleted.append(rel_path)
             except Exception as e:
                 errors.append({rel_path: str(e)})
         else:
-            errors.append({rel_path: "Datei/Ordner nicht gefunden"})
+            errors.append({rel_path: "Nicht gefunden"})
 
     return jsonify({"status": "ok", "deleted": deleted, "errors": errors})
 
@@ -178,9 +157,7 @@ def delete_files():
 # ==========================================================
 @app.route("/rename", methods=["POST"])
 def rename_entry():
-    """
-    Benennt Datei oder Ordner um
-    """
+    """Benennt Datei oder Ordner um"""
     data = request.get_json()
     old = data.get("old")
     new = data.get("new")
@@ -191,9 +168,8 @@ def rename_entry():
     old_path = os.path.abspath(os.path.join(ARCHIVE_DIR, old))
     new_path = os.path.abspath(os.path.join(ARCHIVE_DIR, new))
 
-    if not old_path.startswith(os.path.abspath(ARCHIVE_DIR)) or not new_path.startswith(os.path.abspath(ARCHIVE_DIR)):
+    if not old_path.startswith(ARCHIVE_DIR) or not new_path.startswith(ARCHIVE_DIR):
         return jsonify({"error": "Ungültiger Pfad"}), 400
-
     if not os.path.exists(old_path):
         return jsonify({"error": "Eintrag nicht gefunden"}), 404
 
@@ -209,17 +185,27 @@ def rename_entry():
 # ==========================================================
 @app.route("/translate")
 def translate_file():
-    rel_path = request.args.get("file")
+    """OCR → Übersetzen in gewünschte Sprache"""
+    rel_path = unquote(request.args.get("file", ""))
     lang = request.args.get("lang", "EN")
 
     if not rel_path:
         return jsonify({"error": "Keine Datei angegeben"}), 400
 
-    abs_path = os.path.join(ARCHIVE_DIR, rel_path)
-    if not os.path.exists(abs_path):
+    abs_path = os.path.abspath(os.path.join(ARCHIVE_DIR, rel_path))
+    print(f"🔎 Translate request: rel_path={rel_path}, abs_path={abs_path}")
+
+    if not abs_path.startswith(ARCHIVE_DIR):
+        return jsonify({"error": "Ungültiger Pfad"}), 400
+    if not os.path.isfile(abs_path):
         return jsonify({"error": f"Datei nicht gefunden: {rel_path}"}), 404
 
     text = run_ocr(abs_path)
+    print(f"📄 OCR length: {len(text)}")
+
+    if not text.strip():
+        return jsonify({"error": "⚠ Kein Text zum Übersetzen gefunden."}), 400
+
     translated = translate_text(text, lang)
     return translated, 200, {"Content-Type": "text/plain; charset=utf-8"}
 
@@ -229,23 +215,29 @@ def translate_file():
 # ==========================================================
 @app.route("/explain")
 def explain_file():
-    rel_path = request.args.get("file")
-    lang = request.args.get("lang", "DE")  # implicit germană
+    """OCR → Erklärung in gewünschter Sprache"""
+    rel_path = unquote(request.args.get("file", ""))
+    lang = request.args.get("lang", "DE")
 
     if not rel_path:
         return jsonify({"error": "Keine Datei angegeben"}), 400
 
-    abs_path = os.path.join(ARCHIVE_DIR, rel_path)
-    if not os.path.exists(abs_path):
+    abs_path = os.path.abspath(os.path.join(ARCHIVE_DIR, rel_path))
+    if not abs_path.startswith(ARCHIVE_DIR):
+        return jsonify({"error": "Ungültiger Pfad"}), 400
+    if not os.path.isfile(abs_path):
         return jsonify({"error": f"Datei nicht gefunden: {rel_path}"}), 404
 
     text = run_ocr(abs_path)
-    explained = explain_text(text, lang)   # pasăm și limba aici
+    if not text.strip():
+        return jsonify({"error": "⚠ Kein Text zum Erklären gefunden."}), 400
+
+    explained = explain_text(text, lang)
     return explained, 200, {"Content-Type": "text/plain; charset=utf-8"}
 
 
 # ==========================================================
-# 🌐 Index-Seite (Frontend)
+# 🌐 Index-Seite
 # ==========================================================
 @app.route("/")
 def index():
