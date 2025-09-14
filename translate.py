@@ -61,4 +61,3 @@ def translate_text(text: str, target_lang: str = "EN") -> str:
             return f"❌ OpenAI Fehler: {str(e)}"
 
     return "❌ Kein Übersetzungsdienst verfügbar – bitte API-Key in .env eintragen."
-

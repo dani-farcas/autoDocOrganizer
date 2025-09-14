@@ -1,130 +1,122 @@
 # ==========================================================
-# 🌐 AutoDocOrganizer – Flask Backend
-# Zuständig für Upload, Archivierung, Suche, Download,
-# Übersetzen und Erklären
+# 📂 AutoDocOrganizer – Flask Backend
 # ==========================================================
-
 import os
-import csv
 from datetime import datetime
 from flask import Flask, request, jsonify, send_file, render_template
 
-# 📚 Eigene Module
-from ocr import run_ocr
-from translate import translate_text
-from explain import explain_text
-from extract_institution import extract_institution
-from fileops import move_to_archive
-from indexer import update_index
+# 🔄 Eigene Module aus src/
+from src.ocr import run_ocr
+from src.extract_institution import extract_institution
+from src.indexer import update_index
+from src.translate import translate_text
+from src.explain import explain_text
 
-# ==========================================================
-# 🚀 Flask-App initialisieren
-# ==========================================================
-app = Flask(__name__, static_folder="static", template_folder="templates")
+# ----------------------------------------------------------
+# ⚙️ Flask-App initialisieren
+# ----------------------------------------------------------
+app = Flask(__name__)
 
-# ==========================================================
-# 📂 Projektpfade definieren
-# ==========================================================
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))   # src/
-PROJECT_ROOT = os.path.dirname(BASE_DIR)               # AutoDocOrganizer/
-ARCHIVE_DIR = os.path.join(PROJECT_ROOT, "Archive")    # Archiv im Projekt
-INDEX_FILE = os.path.join(ARCHIVE_DIR, "index.csv")    # Index in Archive/
-
+# Projektverzeichnisse
+PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
+ARCHIVE_DIR = os.path.join(os.path.expanduser("~"), "Desktop", "AutoDocOrganizer", "Archive")
 os.makedirs(ARCHIVE_DIR, exist_ok=True)
 
 
 # ==========================================================
-# 🌐 Hauptseite (Frontend)
+# 📥 Upload von Dateien
 # ==========================================================
-@app.route("/")
-def index():
-    return render_template("index.html")
+@app.route("/upload", methods=["POST"])
+def upload_files():
+    """
+    Dateien hochladen:
+    - Institution aus OCR-Text extrahieren
+    - Datei nach Archive/<Jahr>/<Institution>/ verschieben
+    - Index aktualisieren
+    """
+    if "files" not in request.files:
+        return jsonify({"error": "Keine Dateien hochgeladen"}), 400
+
+    uploaded_files = request.files.getlist("files")
+    saved = []
+
+    for file in uploaded_files:
+        if file.filename == "":
+            continue
+
+        # Temporär speichern
+        tmp_path = os.path.join(PROJECT_ROOT, file.filename)
+        file.save(tmp_path)
+
+        # OCR → Text
+        text = run_ocr(tmp_path)
+        institution = extract_institution(text) or "_Unklar"
+        year = datetime.now().year
+
+        # Zielordner vorbereiten
+        target_dir = os.path.join(ARCHIVE_DIR, str(year), institution)
+        os.makedirs(target_dir, exist_ok=True)
+
+        final_path = os.path.join(target_dir, file.filename)
+        os.replace(tmp_path, final_path)
+
+        # Index aktualisieren
+        update_index(final_path, institution, year)
+
+        saved.append(final_path)
+        print(f"📦 Verschoben nach: {final_path}")
+
+    return jsonify({"status": "ok", "saved": saved})
 
 
 # ==========================================================
-# 📂 Dateien und Ordner im Archiv auflisten
+# 📂 Dateien & Ordner auflisten
 # ==========================================================
 @app.route("/list")
 def list_files():
-    folder = request.args.get("path", ARCHIVE_DIR)
+    """
+    Listet Inhalte eines Ordners im Archiv
+    - Query-Param `path` = relativer Pfad ("" = Root)
+    - Liefert: name, path, is_dir
+    """
+    rel_path = (request.args.get("path", "") or "").strip().strip("/\\")
+    if rel_path == "Archive":
+        rel_path = ""
+    elif rel_path.startswith("Archive/"):
+        rel_path = rel_path[len("Archive/"):]
 
-    if not os.path.exists(folder):
-        return jsonify({"error": f"Ordner {folder} nicht gefunden"}), 404
+    base = os.path.abspath(ARCHIVE_DIR)
+    abs_path = os.path.abspath(os.path.join(base, rel_path))
 
-    result = []
-    for d in sorted(os.listdir(folder)):
-        abs_path = os.path.join(folder, d)
-        if os.path.isdir(abs_path):
-            result.append({
-                "type": "folder",
-                "name": d,
-                "path": os.path.relpath(abs_path, PROJECT_ROOT)
+    if not abs_path.startswith(base):
+        return jsonify({"error": "Ungültiger Pfad"}), 400
+    if not os.path.isdir(abs_path):
+        return jsonify({"error": f"Ordner nicht gefunden: {rel_path or '/'}"}), 404
+
+    entries = []
+    names = sorted(os.listdir(abs_path), key=str.casefold)
+
+    # Ordner zuerst
+    for name in names:
+        full = os.path.join(abs_path, name)
+        if os.path.isdir(full):
+            entries.append({
+                "name": name,
+                "path": os.path.relpath(full, base).replace("\\", "/"),
+                "is_dir": True,
             })
 
-    for f in sorted(os.listdir(folder)):
-        abs_path = os.path.join(folder, f)
-        if os.path.isfile(abs_path):
-            result.append({
-                "type": "file",
-                "name": f,
-                "path": os.path.relpath(abs_path, PROJECT_ROOT)
+    # Dateien danach
+    for name in names:
+        full = os.path.join(abs_path, name)
+        if os.path.isfile(full):
+            entries.append({
+                "name": name,
+                "path": os.path.relpath(full, base).replace("\\", "/"),
+                "is_dir": False,
             })
 
-    return jsonify(result)
-
-
-# ==========================================================
-# 🗑️ Dateien löschen
-# ==========================================================
-@app.route("/delete", methods=["POST"])
-def delete_files():
-    """
-    Löscht eine oder mehrere Dateien aus dem Archiv
-    Erwartet JSON: { "filenames": ["Archive/2025/Unklar/file.pdf"] }
-    """
-    data = request.get_json()
-    filenames = data.get("filenames", [])
-
-    deleted = []
-    errors = []
-
-    for rel_path in filenames:
-        abs_path = os.path.join(PROJECT_ROOT, rel_path)
-        if abs_path.startswith(ARCHIVE_DIR) and os.path.exists(abs_path):
-            try:
-                os.remove(abs_path)
-                deleted.append(rel_path)
-            except Exception as e:
-                errors.append({rel_path: str(e)})
-        else:
-            errors.append({rel_path: "Datei nicht gefunden oder ungültig"})
-
-    return jsonify({"status": "ok", "deleted": deleted, "errors": errors})
-
-
-# ==========================================================
-# 🗂️ Ordner löschen (nur wenn leer)
-# ==========================================================
-@app.route("/delete_folder", methods=["POST"])
-def delete_folder():
-    data = request.get_json()
-    folder_path = data.get("path")
-
-    if not folder_path:
-        return jsonify({"error": "Kein Pfad angegeben"}), 400
-
-    abs_path = os.path.join(PROJECT_ROOT, folder_path)
-    if not abs_path.startswith(ARCHIVE_DIR):
-        return jsonify({"error": "Ungültiger Pfad"}), 403
-
-    if os.path.exists(abs_path) and os.path.isdir(abs_path):
-        if not os.listdir(abs_path):
-            os.rmdir(abs_path)
-            return jsonify({"status": "ok", "deleted": folder_path}), 200
-        else:
-            return jsonify({"error": "Ordner ist nicht leer"}), 400
-    else:
-        return jsonify({"error": "Ordner nicht gefunden"}), 404
+    return jsonify(entries)
 
 
 # ==========================================================
@@ -134,26 +126,82 @@ def delete_folder():
 def download_file():
     rel_path = request.args.get("file")
     if not rel_path:
-        return jsonify({"error": "Datei nicht angegeben"}), 400
+        return jsonify({"error": "Keine Datei angegeben"}), 400
 
-    abs_path = os.path.join(PROJECT_ROOT, rel_path)
-    if not os.path.exists(abs_path):
+    abs_path = os.path.abspath(os.path.join(ARCHIVE_DIR, rel_path))
+
+    if not abs_path.startswith(os.path.abspath(ARCHIVE_DIR)):
+        return jsonify({"error": "Ungültiger Pfad"}), 400
+    if not os.path.isfile(abs_path):
         return jsonify({"error": f"Datei nicht gefunden: {rel_path}"}), 404
 
     return send_file(abs_path, as_attachment=False)
 
 
-@app.route("/force_download")
-def force_download():
-    rel_path = request.args.get("file")
-    if not rel_path:
-        return jsonify({"error": "Datei nicht angegeben"}), 400
+# ==========================================================
+# 🗑️ Dateien / Ordner löschen
+# ==========================================================
+@app.route("/delete", methods=["POST"])
+def delete_files():
+    """
+    Löscht Dateien oder leere Ordner aus dem Archiv
+    """
+    data = request.get_json()
+    filenames = data.get("filenames", [])
 
-    abs_path = os.path.join(PROJECT_ROOT, rel_path)
-    if not os.path.exists(abs_path):
-        return jsonify({"error": f"Datei nicht gefunden: {rel_path}"}), 404
+    deleted, errors = [], []
 
-    return send_file(abs_path, as_attachment=True)
+    for rel_path in filenames:
+        abs_path = os.path.abspath(os.path.join(ARCHIVE_DIR, rel_path))
+
+        if not abs_path.startswith(os.path.abspath(ARCHIVE_DIR)):
+            errors.append({rel_path: "Ungültiger Pfad"})
+            continue
+
+        if os.path.exists(abs_path):
+            try:
+                if os.path.isfile(abs_path):
+                    os.remove(abs_path)
+                elif os.path.isdir(abs_path):
+                    os.rmdir(abs_path)  # nur leere Ordner
+                deleted.append(rel_path)
+            except Exception as e:
+                errors.append({rel_path: str(e)})
+        else:
+            errors.append({rel_path: "Datei/Ordner nicht gefunden"})
+
+    return jsonify({"status": "ok", "deleted": deleted, "errors": errors})
+
+
+# ==========================================================
+# ✏️ Dateien / Ordner umbenennen
+# ==========================================================
+@app.route("/rename", methods=["POST"])
+def rename_entry():
+    """
+    Benennt Datei oder Ordner um
+    """
+    data = request.get_json()
+    old = data.get("old")
+    new = data.get("new")
+
+    if not old or not new:
+        return jsonify({"error": "Alte und neue Namen erforderlich"}), 400
+
+    old_path = os.path.abspath(os.path.join(ARCHIVE_DIR, old))
+    new_path = os.path.abspath(os.path.join(ARCHIVE_DIR, new))
+
+    if not old_path.startswith(os.path.abspath(ARCHIVE_DIR)) or not new_path.startswith(os.path.abspath(ARCHIVE_DIR)):
+        return jsonify({"error": "Ungültiger Pfad"}), 400
+
+    if not os.path.exists(old_path):
+        return jsonify({"error": "Eintrag nicht gefunden"}), 404
+
+    try:
+        os.rename(old_path, new_path)
+        return jsonify({"status": "ok", "old": old, "new": new})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 # ==========================================================
@@ -167,36 +215,38 @@ def translate_file():
     if not rel_path:
         return jsonify({"error": "Keine Datei angegeben"}), 400
 
-    abs_path = os.path.join(PROJECT_ROOT, rel_path)
+    abs_path = os.path.join(ARCHIVE_DIR, rel_path)
     if not os.path.exists(abs_path):
         return jsonify({"error": f"Datei nicht gefunden: {rel_path}"}), 404
 
     text = run_ocr(abs_path)
     translated = translate_text(text, lang)
-    return translated
+    return translated, 200, {"Content-Type": "text/plain; charset=utf-8"}
 
 
 # ==========================================================
-# 📖 Dokument erklären
+# 📖 Datei erklären
 # ==========================================================
 @app.route("/explain")
 def explain_file():
     rel_path = request.args.get("file")
+    lang = request.args.get("lang", "DE")  # implicit germană
 
     if not rel_path:
         return jsonify({"error": "Keine Datei angegeben"}), 400
 
-    abs_path = os.path.join(PROJECT_ROOT, rel_path)
+    abs_path = os.path.join(ARCHIVE_DIR, rel_path)
     if not os.path.exists(abs_path):
         return jsonify({"error": f"Datei nicht gefunden: {rel_path}"}), 404
 
     text = run_ocr(abs_path)
-    explanation = explain_text(text)
-    return explanation
+    explained = explain_text(text, lang)   # pasăm și limba aici
+    return explained, 200, {"Content-Type": "text/plain; charset=utf-8"}
 
 
 # ==========================================================
-# 🚀 Start der App
+# 🌐 Index-Seite (Frontend)
 # ==========================================================
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+@app.route("/")
+def index():
+    return render_template("index.html")

@@ -1,10 +1,8 @@
 // =========================================================
 // 📂 AutoDocOrganizer – Frontend-Skripte
-// Enthält: Upload mit Loader & Banner, Drag&Drop,
-// Navigation, Kontextmenüs, Übersetzen & Erklären
 // =========================================================
 
-let currentPath = "Archive";
+let currentPath = "";   // Start = root (Archive)
 let contextMenu;
 
 // 🌍 Unterstützte Sprachen
@@ -15,11 +13,8 @@ const supportedLanguages = [
   { code: "FR", name: "Französisch" },
   { code: "IT", name: "Italienisch" },
   { code: "ES", name: "Spanisch" },
-  { code: "PT-PT", name: "Portugiesisch (Portugal)" },
-  { code: "PT-BR", name: "Portugiesisch (Brasilien)" },
   { code: "NL", name: "Niederländisch" },
   { code: "PL", name: "Polnisch" },
-  { code: "RU", name: "Russisch" },
   { code: "RO", name: "Rumänisch" },
   { code: "JA", name: "Japanisch" },
   { code: "ZH", name: "Chinesisch" }
@@ -37,84 +32,108 @@ function showBanner(message, type = "success") {
   banner.className = "banner " + type;
   banner.style.display = "flex";
 
-  closeBtn.onclick = () => {
-    banner.style.display = "none";
-  };
+  closeBtn.onclick = () => { banner.style.display = "none"; };
 
   setTimeout(() => {
-    if (banner.style.display === "flex") {
-      banner.style.display = "none";
-    }
+    if (banner.style.display === "flex") banner.style.display = "none";
   }, 3000);
 }
 
 // =========================================================
-// 📤 Upload-Formular mit Loader & Banner
+// 📤 Upload (Formular + Dateiliste)
 // =========================================================
 document.addEventListener("DOMContentLoaded", () => {
   const uploadForm = document.getElementById("upload-form");
-  if (uploadForm) {
-    uploadForm.addEventListener("submit", async function (e) {
-      e.preventDefault();
+  const fileInput = document.getElementById("file-upload");
+  const importBtn = document.getElementById("import-btn");
+  const fileList = document.getElementById("selected-files");
 
-      const loader = document.getElementById("upload-loader");
-      loader.style.display = "inline-block";
+  if (fileInput && importBtn && fileList) {
+    // 📝 Dateien anzeigen, wenn ausgewählt
+    fileInput.addEventListener("change", () => {
+      fileList.innerHTML = "";
 
-      const formData = new FormData(this);
+      if (fileInput.files.length > 0) {
+        Array.from(fileInput.files).forEach((file, idx) => {
+          const li = document.createElement("li");
 
-      try {
-        const res = await fetch("/upload", { method: "POST", body: formData });
+          // Dateiname + Größe
+          const span = document.createElement("span");
+          span.textContent = `${file.name} (${Math.round(file.size / 1024)} KB)`;
 
-        if (res.ok) {
-          showBanner("✅ Upload erfolgreich!", "success");
-          loadFolder();
-        } else {
-          showBanner("❌ Fehler beim Upload", "error");
-        }
-      } catch (err) {
-        showBanner("⚠️ Netzwerkfehler: " + err.message, "error");
-      } finally {
-        loader.style.display = "none";
+          // ❌ Entfernen-Button für einzelne Datei
+          const removeBtn = document.createElement("button");
+          removeBtn.textContent = "✖";
+          removeBtn.onclick = () => {
+            const dt = new DataTransfer();
+            Array.from(fileInput.files)
+              .filter((_, i) => i !== idx)
+              .forEach(f => dt.items.add(f));
+            fileInput.files = dt.files;
+            fileInput.dispatchEvent(new Event("change"));
+          };
+
+          li.appendChild(span);
+          li.appendChild(removeBtn);
+          fileList.appendChild(li);
+        });
+
+        importBtn.disabled = false; // Button aktivieren
+      } else {
+        importBtn.disabled = true;
       }
     });
+
+    // 📤 Upload auslösen
+    if (uploadForm) {
+      uploadForm.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        if (fileInput.files.length === 0) {
+          showBanner("⚠️ Bitte zuerst Dateien auswählen!", "error");
+          return;
+        }
+
+        const loader = document.getElementById("upload-loader");
+        loader.style.display = "inline-block";
+
+        try {
+          const res = await fetch("/upload", { method: "POST", body: new FormData(this) });
+          if (res.ok) {
+            showBanner("✅ Upload erfolgreich!", "success");
+            fileList.innerHTML = "";
+            fileInput.value = "";
+            importBtn.disabled = true;
+            loadFolder(currentPath);
+          } else showBanner("❌ Fehler beim Upload", "error");
+        } catch (err) {
+          showBanner("⚠️ Netzwerkfehler: " + err.message, "error");
+        } finally { loader.style.display = "none"; }
+      });
+    }
   }
 });
 
 // =========================================================
-// 📂 Drag & Drop Upload mit Bestätigung zum Löschen
+// 📂 Drag & Drop Upload
 // =========================================================
 const dropZone = document.getElementById("drop-zone");
-
 if (dropZone) {
-  dropZone.addEventListener("dragover", (e) => {
-    e.preventDefault();
-    dropZone.classList.add("dragover");
-  });
-
-  dropZone.addEventListener("dragleave", () => {
-    dropZone.classList.remove("dragover");
-  });
-
+  dropZone.addEventListener("dragover", e => { e.preventDefault(); dropZone.classList.add("dragover"); });
+  dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
   dropZone.addEventListener("drop", async (e) => {
-    e.preventDefault();
-    dropZone.classList.remove("dragover");
-
-    const files = e.dataTransfer.files;
-    if (files.length === 0) return;
+    e.preventDefault(); dropZone.classList.remove("dragover");
+    const files = e.dataTransfer.files; if (files.length === 0) return;
 
     const formData = new FormData();
-    for (let file of files) {
-      formData.append("files", file);
-    }
+    for (let file of files) formData.append("files", file);
 
     const loader = document.getElementById("upload-loader");
     loader.style.display = "inline-block";
 
     try {
       const res = await fetch("/upload", { method: "POST", body: formData });
-
       if (res.ok) {
-        const confirmDelete = confirm("✅ Upload erfolgreich!\n\nMöchten Sie die Original-Dateien vom Desktop löschen?");
+        const confirmDelete = confirm("✅ Upload erfolgreich!\n\nOriginal-Dateien löschen?");
         if (confirmDelete) {
           await fetch("/delete_originals", {
             method: "POST",
@@ -122,18 +141,12 @@ if (dropZone) {
             body: JSON.stringify({ filenames: Array.from(files).map(f => f.name) })
           });
           showBanner("🗑️ Originale gelöscht", "success");
-        } else {
-          showBanner("✅ Dateien behalten", "success");
-        }
-        loadFolder();
-      } else {
-        showBanner("❌ Fehler beim Upload", "error");
-      }
+        } else showBanner("✅ Dateien behalten", "success");
+        loadFolder(currentPath);
+      } else showBanner("❌ Fehler beim Upload", "error");
     } catch (err) {
       showBanner("⚠️ Netzwerkfehler: " + err.message, "error");
-    } finally {
-      loader.style.display = "none";
-    }
+    } finally { loader.style.display = "none"; }
   });
 }
 
@@ -142,67 +155,46 @@ if (dropZone) {
 // =========================================================
 function renderBreadcrumb(path) {
   const parts = path.split(/[\\/]/).filter(Boolean);
-  let breadcrumb = "";
+  let breadcrumb = `<span onclick="loadFolder('')">Archive</span>`;
   let partial = "";
   parts.forEach((part, i) => {
     partial += (i === 0 ? part : "/" + part);
+    breadcrumb += " / ";
     breadcrumb += `<span onclick="loadFolder('${partial}')">${part}</span>`;
-    if (i < parts.length - 1) breadcrumb += " / ";
   });
   document.getElementById("breadcrumb").innerHTML = breadcrumb;
 }
 
 // =========================================================
-// 📂 Hilfsfunktionen für Pfade
-// =========================================================
-function normalizeToArchivePath(p) {
-  if (!p) return "Archive";
-  let s = String(p).replace(/\\/g, "/");
-  const i = s.indexOf("Archive");
-  if (i >= 0) s = s.substring(i);
-  if (!s.startsWith("Archive")) s = "Archive/" + s.replace(/^\/+/, "");
-  return s;
-}
-
-function dirname(p) {
-  p = normalizeToArchivePath(p);
-  const idx = p.lastIndexOf("/");
-  return idx > 0 ? p.slice(0, idx) : p;
-}
-
-// =========================================================
 // 📂 Ordner & Dateien laden
 // =========================================================
-async function loadFolder(path = "Archive") {
-  currentPath = normalizeToArchivePath(path);
+async function loadFolder(path = "") {
+  currentPath = path;
   const res = await fetch(`/list?path=${encodeURIComponent(currentPath)}`);
-  const items = await res.json();
 
+  if (!res.ok) {
+    showBanner("❌ Fehler beim Laden des Verzeichnisses", "error");
+    return;
+  }
+
+  const items = await res.json();
   renderBreadcrumb(currentPath);
 
   const ul = document.getElementById("file-list");
   ul.innerHTML = "";
 
   items.forEach(item => {
-    let rel = normalizeToArchivePath(item.path);
+    const relPath = currentPath ? currentPath + "/" + item.name : item.name;
     const li = document.createElement("li");
+    li.textContent = (item.is_dir ? "📂 " : "📄 ") + item.name;
 
-    if (item.type === "folder") {
-      li.textContent = "📂 " + item.name;
-      li.ondblclick = () => loadFolder(rel);
-      li.oncontextmenu = (e) => {
-        e.preventDefault();
-        showFolderMenu(e.pageX, e.pageY, rel);
-      };
+    if (item.is_dir) {
+      li.ondblclick = () => loadFolder(relPath);
+      li.oncontextmenu = e => { e.preventDefault(); showFolderMenu(e.pageX, e.pageY, relPath); };
     } else {
-      li.textContent = "📄 " + item.name;
-      li.ondblclick = () => openFile(rel);
-      li.oncontextmenu = (e) => {
-        e.preventDefault();
-        showFileMenu(e.pageX, e.pageY, rel);
-      };
+      li.ondblclick = () => openFile(relPath);
+      li.oncontextmenu = e => { e.preventDefault(); showFileMenu(e.pageX, e.pageY, relPath); };
     }
-
     ul.appendChild(li);
   });
 }
@@ -210,65 +202,63 @@ async function loadFolder(path = "Archive") {
 // =========================================================
 // 📄 Datei öffnen / herunterladen
 // =========================================================
-function openFile(path) {
-  const rel = normalizeToArchivePath(path);
-  window.open(`/download?file=${encodeURIComponent(rel)}`, "_blank");
-}
-
-function downloadFile(path) {
-  const rel = normalizeToArchivePath(path);
-  window.location.href = `/force_download?file=${encodeURIComponent(rel)}`;
-}
+function openFile(path) { window.open(`/download?file=${encodeURIComponent(path)}`, "_blank"); }
+function downloadFile(path) { window.location.href = `/force_download?file=${encodeURIComponent(path)}`; }
 
 // =========================================================
 // ✏️ Datei / Ordner umbenennen
 // =========================================================
 async function renameFile(path) {
-  const rel = normalizeToArchivePath(path);
-  const newName = prompt("Neuer Dateiname:", rel.split("/").pop());
-  if (!newName) return;
-  const body = { old: rel, new: normalizeToArchivePath(dirname(rel) + "/" + newName) };
-  const res = await fetch("/rename", { 
-    method: "POST", 
-    headers: {"Content-Type": "application/json"}, 
-    body: JSON.stringify(body) 
+  const newName = prompt("Neuer Dateiname:", path.split("/").pop()); if (!newName) return;
+  const res = await fetch("/rename", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ old: path, new: (currentPath ? currentPath + "/" : "") + newName })
   });
-  if (res.ok) loadFolder(dirname(rel)); else showBanner("❌ Fehler beim Umbenennen", "error");
+  if (res.ok) loadFolder(currentPath); else showBanner("❌ Fehler beim Umbenennen", "error");
 }
 
 async function renameFolder(path) {
-  const newName = prompt("Neuer Ordnername:", path.split("/").pop());
-  if (!newName) return;
+  const newName = prompt("Neuer Ordnername:", path.split("/").pop()); if (!newName) return;
   const res = await fetch("/rename_folder", {
     method: "POST",
     headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({ old: path, new: newName })
+    body: JSON.stringify({ old: path, new: (path.split("/").slice(0,-1).join("/") + "/" + newName) })
   });
-  if (res.ok) loadFolder(dirname(path)); else showBanner("❌ Fehler beim Umbenennen des Ordners", "error");
+  if (res.ok) loadFolder(currentPath); else showBanner("❌ Fehler beim Umbenennen des Ordners", "error");
 }
 
 // =========================================================
-// ❌ Datei / Ordner löschen (FIXED!)
+// ❌ Datei / Ordner löschen (Unified Endpoint `/delete`)
 // =========================================================
 async function deleteFile(path) {
-  const rel = normalizeToArchivePath(path);
   if (!confirm("Datei wirklich löschen?")) return;
-  const res = await fetch("/delete", { 
-    method: "POST", 
-    headers: {"Content-Type": "application/json"}, 
-    body: JSON.stringify({ filenames: [rel] })   // ✅ FIX
+  const res = await fetch("/delete", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ filenames: [path] })
   });
-  if (res.ok) loadFolder(currentPath); else showBanner("❌ Fehler beim Löschen", "error");
+  if (res.ok) {
+    showBanner("🗑️ Datei gelöscht", "success");
+    loadFolder(currentPath);
+  } else {
+    showBanner("❌ Fehler beim Löschen der Datei", "error");
+  }
 }
 
 async function deleteFolder(path) {
   if (!confirm("Ordner wirklich löschen (nur wenn leer)?")) return;
-  const res = await fetch("/delete_folder", {
+  const res = await fetch("/delete", {
     method: "POST",
     headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({ path: path })   // ✅ FIX
+    body: JSON.stringify({ filenames: [path] })
   });
-  if (res.ok) loadFolder(dirname(path)); else showBanner("❌ Fehler beim Löschen des Ordners", "error");
+  if (res.ok) {
+    showBanner("🗑️ Ordner gelöscht", "success");
+    loadFolder(currentPath);
+  } else {
+    showBanner("❌ Fehler beim Löschen des Ordners", "error");
+  }
 }
 
 // =========================================================
@@ -276,15 +266,10 @@ async function deleteFolder(path) {
 // =========================================================
 document.addEventListener("DOMContentLoaded", () => {
   const searchInput = document.getElementById("search-input");
-
   if (searchInput) {
     searchInput.addEventListener("input", async () => {
       const query = searchInput.value.trim();
-
-      if (query.length < 2) {
-        loadFolder();
-        return;
-      }
+      if (query.length < 2) { loadFolder(currentPath); return; }
 
       try {
         const res = await fetch(`/search?query=${encodeURIComponent(query)}`);
@@ -292,16 +277,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const ul = document.getElementById("file-list");
         ul.innerHTML = "";
-
         results.forEach(item => {
           const li = document.createElement("li");
           li.textContent = "📄 " + item.filename + ` (${item.institution}, ${item.year})`;
           li.onclick = () => window.open(`/download?file=${encodeURIComponent(item.path)}`, "_blank");
           ul.appendChild(li);
         });
-      } catch (err) {
-        showBanner("❌ Fehler bei der Suche", "error");
-      }
+      } catch { showBanner("❌ Fehler bei der Suche", "error"); }
     });
   }
 });
@@ -313,8 +295,7 @@ function showFileMenu(x, y, path) {
   if (contextMenu) contextMenu.remove();
   contextMenu = document.createElement("div");
   contextMenu.className = "context-menu";
-  contextMenu.style.top = y + "px";
-  contextMenu.style.left = x + "px";
+  contextMenu.style.top = y + "px"; contextMenu.style.left = x + "px";
   contextMenu.innerHTML = `
     <button onclick="downloadFile('${path}')">⬇️ Download</button>
     <button onclick="renameFile('${path}')">✏️ Umbenennen</button>
@@ -330,8 +311,7 @@ function showFolderMenu(x, y, path) {
   if (contextMenu) contextMenu.remove();
   contextMenu = document.createElement("div");
   contextMenu.className = "context-menu";
-  contextMenu.style.top = y + "px";
-  contextMenu.style.left = x + "px";
+  contextMenu.style.top = y + "px"; contextMenu.style.left = x + "px";
   contextMenu.innerHTML = `
     <button onclick="renameFolder('${path}')">✏️ Ordner umbenennen</button>
     <button onclick="deleteFolder('${path}')">❌ Ordner löschen</button>
@@ -343,22 +323,14 @@ function showFolderMenu(x, y, path) {
 // =========================================================
 // 🌍 Datei übersetzen / 📖 erklären (Modal)
 // =========================================================
-async function translateFile(path) {
-  createModal(path, "Übersetzen", "/translate");
-}
-
-async function explainFile(path) {
-  createModal(path, "Erklären", "/explain");
-}
+async function translateFile(path) { createModal(path, "Übersetzen", "/translate"); }
+async function explainFile(path) { createModal(path, "Erklären", "/explain"); }
 
 function createModal(path, actionLabel, endpoint) {
-  const rel = normalizeToArchivePath(path);
-
   const select = document.createElement("select");
   supportedLanguages.forEach(lang => {
     const opt = document.createElement("option");
-    opt.value = lang.code;
-    opt.textContent = `${lang.name} (${lang.code})`;
+    opt.value = lang.code; opt.textContent = `${lang.name} (${lang.code})`;
     select.appendChild(opt);
   });
 
@@ -379,7 +351,7 @@ function createModal(path, actionLabel, endpoint) {
   okBtn.onclick = async () => {
     const lang = select.value;
     outputArea.value = "⏳ " + actionLabel + "...";
-    const res = await fetch(`${endpoint}?file=${encodeURIComponent(rel)}&lang=${encodeURIComponent(lang)}`);
+    const res = await fetch(`${endpoint}?file=${encodeURIComponent(path)}&lang=${encodeURIComponent(lang)}`);
     outputArea.value = await res.text();
   };
 
@@ -387,18 +359,15 @@ function createModal(path, actionLabel, endpoint) {
   closeBtn.textContent = "Schließen";
   closeBtn.onclick = () => document.body.removeChild(modal);
 
-  btnDiv.appendChild(okBtn);
-  btnDiv.appendChild(closeBtn);
-  wrapper.appendChild(btnDiv);
+  btnDiv.appendChild(okBtn); btnDiv.appendChild(closeBtn); wrapper.appendChild(btnDiv);
 
   const modal = document.createElement("div");
-  modal.className = "modal";
-  modal.appendChild(wrapper);
-
-  document.body.appendChild(modal);
+  modal.className = "modal"; modal.appendChild(wrapper); document.body.appendChild(modal);
 }
 
 // =========================================================
 // 🚀 Initial laden
 // =========================================================
-loadFolder();
+document.addEventListener("DOMContentLoaded", () => {
+  loadFolder("");   // Root = Archive
+});

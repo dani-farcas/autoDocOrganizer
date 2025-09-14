@@ -1,0 +1,39 @@
+nohup: ignoring input
+[2025-09-14 16:11:21 +0000] [3846] [INFO] Starting gunicorn 23.0.0
+[2025-09-14 16:11:21 +0000] [3846] [INFO] Listening at: http://0.0.0.0:8000 (3846)
+[2025-09-14 16:11:21 +0000] [3846] [INFO] Using worker: sync
+[2025-09-14 16:11:21 +0000] [3847] [INFO] Booting worker with pid: 3847
+[2025-09-14 16:11:21 +0000] [3848] [INFO] Booting worker with pid: 3848
+[2025-09-14 16:11:27 +0000] [3846] [ERROR] Worker (pid:3848) was sent SIGKILL! Perhaps out of memory?
+[2025-09-14 16:11:27 +0000] [3849] [INFO] Booting worker with pid: 3849
+[2025-09-14 16:12:32 +0000] [3846] [CRITICAL] WORKER TIMEOUT (pid:3847)
+[2025-09-14 16:16:56 +0000] [3846] [ERROR] Worker (pid:3847) was sent SIGKILL! Perhaps out of memory?
+[2025-09-14 16:16:56 +0000] [3856] [INFO] Booting worker with pid: 3856
+[2025-09-14 16:16:56 +0000] [3846] [ERROR] Worker (pid:3856) was sent SIGHUP!
+[2025-09-14 16:16:56 +0000] [3846] [INFO] Handling signal: hup
+[2025-09-14 16:16:56 +0000] [3846] [INFO] Hang up: Master
+[2025-09-14 16:16:56 +0000] [3858] [INFO] Booting worker with pid: 3858
+[2025-09-14 16:16:56 +0000] [3860] [INFO] Booting worker with pid: 3860
+[2025-09-14 16:16:56 +0000] [3846] [ERROR] Worker (pid:3849) was sent SIGHUP!
+[2025-09-14 16:17:04 +0000] [3846] [ERROR] Worker (pid:3860) was sent SIGKILL! Perhaps out of memory?
+[2025-09-14 16:17:04 +0000] [4007] [INFO] Booting worker with pid: 4007
+[2025-09-14 16:18:16 +0000] [3846] [CRITICAL] WORKER TIMEOUT (pid:3858)
+[2025-09-14 16:24:06 +0000] [3846] [ERROR] Worker (pid:3858) was sent SIGKILL! Perhaps out of memory?
+[2025-09-14 16:24:06 +0000] [4027] [INFO] Booting worker with pid: 4027
+[2025-09-14 16:45:47 +0000] [3846] [CRITICAL] WORKER TIMEOUT (pid:4007)
+[2025-09-14 16:47:23 +0000] [3846] [ERROR] Worker (pid:4007) was sent SIGKILL! Perhaps out of memory?
+[2025-09-14 16:47:23 +0000] [4132] [INFO] Booting worker with pid: 4132
+[2025-09-14 16:48:30 +0000] [3846] [CRITICAL] WORKER TIMEOUT (pid:4027)
+[2025-09-14 16:49:08 +0000] [3846] [ERROR] Worker (pid:4027) was sent SIGKILL! Perhaps out of memory?
+[2025-09-14 16:49:08 +0000] [4289] [INFO] Booting worker with pid: 4289
+[2025-09-14 16:51:08 +0000] [3846] [CRITICAL] WORKER TIMEOUT (pid:4132)
+[2025-09-14 16:52:14 +0000] [3846] [ERROR] Worker (pid:4132) was sent SIGKILL! Perhaps out of memory?
+[2025-09-14 16:52:14 +0000] [4299] [INFO] Booting worker with pid: 4299
+[2025-09-14 16:52:21 +0000] [3846] [ERROR] Worker (pid:4289) was sent SIGKILL! Perhaps out of memory?
+[2025-09-14 16:52:21 +0000] [4314] [INFO] Booting worker with pid: 4314
+[2025-09-14 16:53:15 +0000] [3846] [CRITICAL] WORKER TIMEOUT (pid:4299)
+[2025-09-14 16:53:23 +0000] [3846] [ERROR] Worker (pid:4299) was sent SIGKILL! Perhaps out of memory?
+[2025-09-14 16:53:23 +0000] [4326] [INFO] Booting worker with pid: 4326
+[2025-09-14 16:55:06 +0000] [3846] [CRITICAL] WORKER TIMEOUT (pid:4314)
+[2025-09-14 16:56:16 +0000] [3846] [ERROR] Worker (pid:4314) was sent SIGKILL! Perhaps out of memory?
+[2025-09-14 16:56:16 +0000] [4731] [INFO] Booting worker with pid: 4731
