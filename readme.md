@@ -11,7 +11,7 @@ Das System wurde als MVP (Minimum Viable Product) umgesetzt: Es ermöglicht bere
 
 Die Anwendung ist auf meinem Testserver (AWS EC2, Ubuntu 24.04) dauerhaft eingerichtet und erreichbar unter:
 
-👉 http://52.29.84.137/
+👉 (http://52.204.212.172:8000/)
 
 (Der Server läuft unabhängig von VS Code; die Dienste nginx und autoDocOrganizer werden automatisch durch systemd gestartet.)
 
