@@ -29,30 +29,42 @@ os.makedirs(ARCHIVE_DIR, exist_ok=True)
 @app.route("/upload", methods=["POST"])
 def upload_files():
     """Dateien hochladen und ins Archiv verschieben"""
-    if "files" not in request.files:
+    # 🛡️ Prüfen, ob Dateien im Request sind
+    uploaded_files = []
+    if "files" in request.files:
+        uploaded_files = request.files.getlist("files")
+    elif "file-upload" in request.files:
+        uploaded_files = request.files.getlist("file-upload")
+
+    if not uploaded_files:
         return jsonify({"error": "Keine Dateien hochgeladen"}), 400
 
-    uploaded_files = request.files.getlist("files")
     saved = []
 
     for file in uploaded_files:
         if file.filename == "":
             continue
 
+        # 🔹 Temporär speichern
         tmp_path = os.path.join(ARCHIVE_DIR, file.filename)
         file.save(tmp_path)
 
+        # 🔹 OCR + Institution extrahieren
         text = run_ocr(tmp_path)
         institution = extract_institution(text) or "_Unklar"
         year = datetime.now().year
 
+        # 🔹 Zielordner vorbereiten
         target_dir = os.path.join(ARCHIVE_DIR, str(year), institution)
         os.makedirs(target_dir, exist_ok=True)
 
+        # 🔹 Datei verschieben
         final_path = os.path.join(target_dir, file.filename)
         os.replace(tmp_path, final_path)
 
+        # 🔹 Index aktualisieren
         update_index(final_path, institution, year)
+
         saved.append(final_path)
         print(f"📦 Verschoben nach: {final_path}")
 
