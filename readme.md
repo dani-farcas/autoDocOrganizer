@@ -1,6 +1,8 @@
 
 
 
+
+
 🌍 Überblick
 
 AutoDocOrganizer ist eine Web-Anwendung zur automatischen Verarbeitung von importierten Dokumenten (PDF oder Bilddateien).
@@ -11,9 +13,12 @@ Das System wurde als MVP (Minimum Viable Product) umgesetzt: Es ermöglicht bere
 
 Die Anwendung ist auf meinem Testserver (AWS EC2, Ubuntu 24.04) dauerhaft eingerichtet und erreichbar unter:
 
-👉 (http://52.204.212.172:8000/)
+👉 http://52.204.212.172:8000/
 
-(Der Server läuft unabhängig von VS Code; die Dienste nginx und autoDocOrganizer werden automatisch durch systemd gestartet.)
+(Der Server läuft unabhängig von VS Code)
+
+Hinweis: Normalerweise würde in einer Produktionsumgebung ein Webserver wie **Nginx** als Reverse Proxy vor Gunicorn eingesetzt werden.  
+Da es sich hier jedoch um eine sehr kleine EC2-Instanz mit begrenztem Speicherplatz handelt, läuft Gunicorn direkt und ist über Port 8000 erreichbar.
 
 
 🎯 Funktionsumfang (MVP)
