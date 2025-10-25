@@ -1,102 +1,88 @@
+# 📂 AutoDocOrganizer
+
+AutoDocOrganizer ist eine Anwendung zur **automatischen Verarbeitung, Ordnung und Verständlichmachung von Dokumenten** (PDF oder Bilddateien).  
+Das System wurde als **MVP (Minimum Viable Product)** entwickelt und läuft aktuell lokal auf dem eigenen Rechner.
+
+---
+
+## 🎥 Demo-Videos
+
+| Beschreibung | Link |
+|--------------|------|
+| Web-Oberfläche in Aktion – Dokument hochladen, OCR, automatische Ablage | [🎬 Demo ansehen](https://drive.google.com/file/d/1-Rud-y9tuBTz8WtOv__TNxC5bNl1b2Te/view?usp=drive_link) |
+| Entwicklungsumgebung (VS Code) + Ordnerstruktur + Verarbeitungsschritte | [🎬 Demo ansehen](https://drive.google.com/file/d/1L1S3q-jxF4449hh9z20240Lbme23POMp/view?usp=drive_link) |
 
 
+---
 
-🌍 Überblick
+## ⚙️ Funktionsumfang (MVP-Status)
 
-AutoDocOrganizer ist eine Web-Anwendung zur automatischen Verarbeitung von importierten Dokumenten (PDF oder Bilddateien).
-Das System wurde als MVP (Minimum Viable Product) umgesetzt: Es ermöglicht bereits OCR, automatische Ablage, Übersetzung und Erklärung von Dokumenten.
+| Modul | Beschreibung |
+|--------|---------------|
+| **Dokumentenimport** | Upload im Browser oder automatisches Einlesen aus `ScansInbox/` |
+| **OCR (Texterkennung)** | PDF- und Bildanalyse mit *Tesseract* + *Poppler* |
+| **Automatische Ablage** | Sortiert nach Jahr und vermuteter Institution; Unklare → `_Unbekannt/` |
+| **Indexierung** | Zentrale Übersicht über alle archivierten Dokumente |
+| **Übersetzungen (optional)** | DeepL zur Übersetzung in verschiedene Sprachen |
+| **Erklärungen (optional)** | Google Gemini für leicht verständliche Zusammenfassungen |
+| **Webinterface** | Zugriff und Bedienung im Browser über *Flask* |
 
+---
 
-🌐 Live-Demo
+## 🗂️ Projektstruktur
 
-Die Anwendung ist auf meinem Testserver (AWS EC2, Ubuntu 24.04) dauerhaft eingerichtet und erreichbar unter:
-
-👉 http://52.29.84.137/
-
-(Der Server läuft unabhängig von VS Code; die Dienste nginx und autoDocOrganizer werden automatisch durch systemd gestartet.)
-
-
-🎯 Funktionsumfang (MVP)
-
-Import von Dokumenten: Upload im Webinterface oder Kopieren in ScansInbox/.
-
-OCR (Texterkennung): Automatische Volltexterkennung aus PDFs/Bildern (Tesseract + Poppler).
-
-Institutionserkennung: Ablage in Ordnern nach Jahr und Institution, sonst in _Unbekannt.
-
-Indexierung: Zentrale Übersicht aller archivierten Dokumente.
-
-Übersetzung: DeepL-Integration für Übersetzungen in wählbare Sprachen.
-
-Erklärungen: Google Gemini-Integration für leicht verständliche Erklärungen.
-
-Webzugriff: Bedienung über Browser dank Flask + Gunicorn + Nginx.
-
-Kontextmenü (Rechtsklick): Auf jedes Dokument →
-
-Translate → Sprache auswählen
-
-Explain → Erklärung mit KI
-
-
-🛠️ Architektur
-```
+```text
 AutoDocOrganizer/
-├─ config/              # Einstellungen (.env, settings.yml)
-├─ src/                 # Python-Code
-│   ├─ main.py          # CLI-Modus (Batch-Verarbeitung)
-│   ├─ app.py           # Flask-App (Webinterface)
-│   ├─ ocr.py           # OCR mit Tesseract + Poppler
-│   ├─ extract_institution.py
-│   ├─ translate.py     # DeepL-Übersetzungen
-│   ├─ explain.py       # Gemini-Erklärungen
-│   ├─ fileops.py       # Dateimanagement
-│   └─ indexer.py       # Indexverwaltung
-├─ ScansInbox/          # Eingehende Dokumente
-├─ Archive/             # Automatisch sortierte Ablage
-└─ requirements.txt     # Python-Abhängigkeiten
-```
-
-## 🗂️ Systemarchitektur (UML)
-
-### PNG-Version (garantiert sichtbar)
-![UML Diagramm](https://raw.githubusercontent.com/dani-farcas/autoDocOrganizer/main/docs/architecture.png)
-
-### SVG-Version (nur als Link)
-[👉 UML Diagramm (SVG)](docs/architecture.svg)
++-- config/           # Einstellungen (.env, settings.yml)
++-- src/
+|   +-- app.py        # Flask Web-App
+|   +-- main.py       # CLI-Batch-Verarbeitung
+|   +-- ocr.py        # Texterkennung
+|   +-- extract_institution.py
+|   +-- translate.py  # DeepL-Integration (optional)
+|   +-- explain.py    # Gemini-Erklärungen (optional)
+|   +-- fileops.py    # Dateiverarbeitung / Ablage
+|   \-- indexer.py    # Indexverwaltung
++-- ScansInbox/       # Eingehende Dokumente
++-- Archive/          # Sortierte Ablage
+\-- requirements.txt  # Python-Abhängigkeiten
+🧩 Systemarchitektur (UML)
+📸 PNG-Version (immer sichtbar)
 
 
-🚀 Zukunft / Geplante Erweiterungen
-
-Dies ist aktuell ein MVP. Für eine spätere Version sind folgende Erweiterungen vorgesehen:
-
-🌐 Modernes UI: Benutzeroberfläche im Stil aktueller Web-Apps (Material Design / Microsoft 365).
-
-📂 Drag & Drop Upload: Dokumente per Drag & Drop ins Browserfenster ziehen.
-
-☁️ Cloud-Integration: Automatische Speicherung in OneDrive oder ähnlichen Cloud-Diensten, um nahtlos in bestehende Arbeitsumgebungen integriert zu werden.
-
-📸 Scanner-Anbindung: Direkte Integration mit TWAIN/SANE für physische Scanner.
-
-🔍 Suche & Filter: Volltextsuche in allen archivierten Dokumenten.
-
-📱 Mobile App / Responsive Webdesign: Zugriff von Smartphone und Tablet.
 
 
-✅ Vorteile
+ Systemlogik (Kurz verständlich)
+Dokument wird hochgeladen oder in ScansInbox/ gelegt
 
-Automatische Ablage spart Zeit und verhindert Fehler.
+OCR → Volltext wird extrahiert
 
-Einfache Nutzung über Browser.
+System erkennt Institution anhand von Schlüsselwörtern
 
-Sofortige Mehrsprachigkeit dank DeepL.
+Ablage erfolgt in → Archive/<Jahr>/<Institution>/
 
-KI-Erklärungen erleichtern das Verständnis offizieller Schreiben.
+Eintrag wird im Index gespeichert
 
-Zukunftssicher durch geplante Erweiterungen (Cloud, modernes UI, Mobile).
+Rechtsklick auf Dokument → Translate / Explain möglich
 
+ Geplante Weiterentwicklung
+Feature	Ziel
+Modernes UI (Material / Fluent Design)	Nutzerfreundlicheres & attraktives Interface
+Drag & Drop Upload	Schneller Import ohne Dateidialog
+Cloud-Sync (OneDrive / Google Drive)	Gemeinsame Nutzung in Teams
+Direkte Scanner-Integration (TWAIN/SANE)	Papier → digital → automatisch einsortiert
+Volltextsuche & Filter	Dokumente blitzschnell auffindbar
+Responsive / Mobile Ready	Bedienbar auf Tablet & Smartphone
 
-📌 Fazit
+ Vorteile
+✅ Reduziert manuellen Sortieraufwand
+✅ Übersichtliche zentrale Dokumentenablage
+✅ Verständliche KI-Erklärungen bei Behördenbriefen
+✅ Skalierbar für Teams & Büros (z. B. Verwaltung, Steuerkanzlei, Arztpraxis)
 
-AutoDocOrganizer ist ein voll funktionsfähiger Prototyp (MVP), der die Kernfunktionen bereits demonstriert.
-Er eignet sich ideal als Grundlage für eine professionelle Weiterentwicklung in Richtung einer modernen Cloud-Lösung, die mit Microsoft 365 & OneDrive vergleichbar ist.
+ Fazit
+AutoDocOrganizer ist ein funktionsfähiger Prototyp, der zeigt,
+wie dokumentenintensive Abläufe automatisiert, vereinheitlicht und verständlich gemacht werden können.
+
+Er dient als stabile Basis für den Ausbau zu einer professionellen Cloud-Lösung
+mit moderner UI und optionaler Team- / Mobile-Nutzung.
